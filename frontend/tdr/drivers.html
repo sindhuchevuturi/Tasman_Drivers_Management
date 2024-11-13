@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drivers List</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .error {
+            color: red;
+        }
+        .scrollable-table {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .table-fixed-header {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .thead-light th {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+    <div class="container mt-5">
+        <header>
+            <h1 class="text-center">Drivers List</h1>
+        </header>
+
+        <h2 class="mt-4">Drivers</h2>
+        <div class="scrollable-table">
+            <table class="table table-bordered" id="driversTable">
+                <thead class="thead-light table-fixed-header">
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone Number</th>
+                        <th>On Leave</th>
+                        <th>Has MSIC</th>
+                        <th>Has White Card</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for driver in drivers %}
+                    <tr data-id="{{ driver.id }}">
+                        <td>{{ driver.name }}</td>
+                        <td>{{ driver.phone_number }}</td>
+                        <td>{{ driver.on_leave }}</td>
+                        <td>{{ driver.has_msic }}</td>
+                        <td>{{ driver.has_white_card }}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm edit-btn" onclick="editDriver({{driver.id }})">Edit</button>
+                            <button class="btn btn-danger btn-sm delete-btn" onclick="deleteDriver({{ driver.id }})">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            <h3>Add New Driver</h3>
+            <div class="form-group">
+                <input type="text" class="form-control" id="newDriverName" placeholder="Driver Name">
+                <input type="text" class="form-control mt-2" id="newDriverPhone" placeholder="Driver Phone Number" value="+">
+                <label class="mt-2"><input type="checkbox" id="newOnLeave" onclick="toggleCheckboxes('new')"> On Leave</label>
+                <label class="mt-2"><input type="checkbox" id="newHasMSIC" onclick="toggleCheckboxes('new')"> Has MSIC</label>
+                <label class="mt-2"><input type="checkbox" id="newHasWhiteCard" onclick="toggleCheckboxes('new')"> Has White Card</label>
+                <button class="btn btn-success mt-2" onclick="addDriver()">Add Driver</button>
+            </div>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+    </div>
+
+    <script>
+        $('#newDriverPhone').on('input', function () {
+            this.value = '+' + this.value.replace(/\D/g, '').replace(/^0+/, '');
+        });
+
+        function toggleCheckboxes(prefix) {
+            const onLeave = $(`#${prefix}OnLeave`).is(':checked');
+            if (onLeave) {
+                $(`#${prefix}HasMSIC, #${prefix}HasWhiteCard`).prop('checked', false).prop('disabled', true);
+            } else {
+                $(`#${prefix}HasMSIC, #${prefix}HasWhiteCard`).prop('disabled', false);
+            }
+        }
+
+        function getCSRFToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", getCSRFToken());
+                }
+            }
+        });
+
+        function addDriver() {
+            const name = $('#newDriverName').val();
+            const phone = $('#newDriverPhone').val();
+            const onLeave = $('#newOnLeave').is(':checked');
+            const hasMSIC = $('#newHasMSIC').is(':checked');
+            const hasWhiteCard = $('#newHasWhiteCard').is(':checked');
+
+            if (!/^\+\d+$/.test(phone)) {
+                alert('Phone number must contain only digits and must start with +');
+                return;
+            }
+
+            if (!onLeave && !hasMSIC && !hasWhiteCard) {
+                $('#errorMessage').text('Please select at least one option (On Leave, Has MSIC, or Has White Card).');
+                return;
+            } else {
+                $('#errorMessage').text('');
+            }
+
+            $.ajax({
+                url: '/add_driver/',
+                method: 'POST',
+                data: {
+                    name: name,
+                    phone_number: phone,
+                    on_leave: onLeave,
+                    has_msic: hasMSIC,
+                    has_white_card: hasWhiteCard,
+                    csrfmiddlewaretoken: getCSRFToken()
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Error adding driver: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error: ' + xhr.responseText);
+                }
+            });
+        }
+
+        function editDriver(id) {
+            const row = $(`tr[data-id="${id}"]`);
+            const name = row.find('td:eq(0)').text();
+            const phone = row.find('td:eq(1)').text();
+            const onLeave = row.find('td:eq(2)').text() === 'True';
+            const hasMSIC = row.find('td:eq(3)').text() === 'True';
+            const hasWhiteCard = row.find('td:eq(4)').text() === 'True';
+
+            row.html(`
+                <td><input type="text" class="form-control" id="editDriverName" value="${name}"></td>
+                <td><input type="text" class="form-control" id="editDriverPhone" value="${phone}" oninput="this.value = '+' + this.value.replace(/\\D/g, '').replace(/^0+/, '')"></td>
+                <td><label><input type="checkbox" id="editOnLeave" ${onLeave ? 'checked' : ''} onclick="toggleCheckboxes('edit')"> On Leave</label></td>
+                <td><label><input type="checkbox" id="editHasMSIC" ${hasMSIC ? 'checked' : ''} onclick="toggleCheckboxes('edit')"> Has MSIC</label></td>
+                <td><label><input type="checkbox" id="editHasWhiteCard" ${hasWhiteCard ? 'checked' : ''} onclick="toggleCheckboxes('edit')"> Has White Card</label></td>
+                <td>
+                    <button class="btn btn-success btn-sm save-btn" onclick="saveDriver(${id})">Save</button>
+                    <button class="btn btn-secondary btn-sm cancel-btn" onclick="cancelEdit(${id})">Cancel</button>
+                </td>
+            `);
+            toggleCheckboxes('edit');
+        }
+
+        function saveDriver(id) {
+            const name = $('#editDriverName').val();
+            const phone = $('#editDriverPhone').val();
+            const onLeave = $('#editOnLeave').is(':checked');
+            const hasMSIC = $('#editHasMSIC').is(':checked');
+            const hasWhiteCard = $('#editHasWhiteCard').is(':checked');
+
+            if (!/^\+\d+$/.test(phone)) {
+                alert('Phone number must contain only digits and must start with +');
+                return;
+            }
+
+            if (!onLeave && !hasMSIC && !hasWhiteCard) {
+                $('#errorMessage').text('Please select at least one option (On Leave, Has MSIC, or Has White Card).');
+                return;
+            } else {
+                $('#errorMessage').text('');
+            }
+
+            $.ajax({
+                url: `/edit_driver/${id}/`,
+                method: 'POST',
+                data: {
+                    name: name,
+                    phone_number: phone,
+                    on_leave: onLeave,
+                    has_msic: hasMSIC,
+                    has_white_card: hasWhiteCard,
+                    csrfmiddlewaretoken: getCSRFToken()
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Error saving driver: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error: ' + xhr.responseText);
+                }
+            });
+        }
+
+        function cancelEdit(id) {
+            location.reload();
+        }
+
+        function deleteDriver(id) {
+            if (confirm('Are you sure you want to delete this driver?')) {
+                $.ajax({
+                    url: `/delete_driver/${id}/`,
+                    method: 'DELETE',
+                    data: { csrfmiddlewaretoken: getCSRFToken() },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            location.reload();
+                        } else {
+                            alert('Error deleting driver: ' + response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        alert('Error: ' + xhr.responseText);
+                    }
+                });
+            }
+        }
+    </script>
+
+</body>
+</html>
+
+{% endblock %}

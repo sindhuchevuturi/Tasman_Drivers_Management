@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicles List</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .scrollable-table {
+            max-height: 300px; /* Adjust this value to control the height */
+            overflow-y: auto; /* Enable vertical scrolling */
+            border: 1px solid #dee2e6; /* Add border to match table */
+            border-radius: 0.25rem; /* Round corners to match Bootstrap styling */
+        }
+        .table-fixed-header {
+            table-layout: fixed;
+            width: 100%;
+        }
+        th {
+            background-color: #f8f9fa; /* Light gray for header background */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <header class="mb-4 text-center">
+        <h1>Vehicles List</h1>
+    </header>
+
+    <h2 class="mt-4">Vehicles List</h2>
+
+    <table class="table table-bordered table-fixed-header">
+        <thead class="thead-light">
+            <tr>
+                <th class="text-center">Vehicle Rego</th> <!-- Centered header title -->
+            </tr>
+        </thead>
+    </table>
+    <div class="scrollable-table">
+        <table id="vehiclesTable" class="table table-bordered">
+            <tbody>
+                {% for vehicle in vehicle %} <!-- Changed from 'trailer' to 'vehicle' -->
+                <tr>
+                    <td class="text-center">{{ vehicle.rego_number }}</td> <!-- Centered table data -->
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="form-group">
+        <input type="text" id="newRego" class="form-control" placeholder="Add New Rego">
+        <button class="btn btn-success mt-2" onclick="addRego()">Add Vehicle Rego</button> <!-- Changed button text for clarity -->
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+                xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+            }
+        }
+    });
+
+    function addRego() {
+        const newRego = $('#newRego').val().trim();
+        if (newRego !== "") {
+            $.post('/add_vehicle/', { rego_number: newRego }, function(response) {
+                console.log(response); // Debugging line
+                if (response.status === 'success') {
+                    // Add new row to the table only if a new vehicle is successfully created
+                    const newRow = `<tr><td class="text-center">${response.rego_number}</td></tr>`; // Centered new row data
+                    $('#vehiclesTable tbody').append(newRow);
+                    $('#newRego').val(''); // Clear input field
+                } else if (response.status === 'exists') {
+                    // Show alert for existing vehicle without modifying the table
+                    alert(response.message); 
+                } else {
+                    // Handle other error messages
+                    alert('Error: ' + (response.message || 'Unknown error occurred.')); // Fallback for undefined message
+                }
+            }).fail(function(xhr) {
+                alert('Error: ' + xhr.responseText); // Handle AJAX request failure
+            });
+        } else {
+            alert('Please enter a vehicle registration number.'); // Input validation
+        }
+    }
+</script>
+
+</body>
+</html>
+{% endblock %}

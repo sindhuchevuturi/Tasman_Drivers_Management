@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trailers List</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .error {
+            color: red;
+        }
+        .scrollable-table {
+            max-height: 300px; /* Adjust this value to control the height */
+            overflow-y: auto; /* Enable vertical scrolling */
+            border: 1px solid #dee2e6; /* Add border to match table */
+            border-radius: 0.25rem; /* Round corners to match Bootstrap styling */
+        }
+        .table-fixed-header {
+            table-layout: fixed;
+            width: 100%;
+        }
+        th {
+            background-color: #f8f9fa; /* Light gray for header background */
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+    <div class="container mt-5">
+        <header>
+            <h1 class="text-center">Trailers List</h1>
+        </header>
+
+        <h2 class="mt-4">Trailers</h2>
+
+        <table class="table table-bordered table-fixed-header">
+            <thead class="thead-light">
+                <tr>
+                    <th class="text-center">Trailer Rego</th>
+                </tr>
+            </thead>
+        </table>
+        <div class="scrollable-table">
+            <table class="table table-bordered">
+                <tbody>
+                    {% for trailer in trailers %}
+                    <tr>
+                        <td class="text-center">{{ trailer.rego_number }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            <h3>Add New Trailer</h3>
+            <div class="form-group">
+                <input type="text" class="form-control" id="newTrailerRego" placeholder="Add New Trailer Rego">
+                <button class="btn btn-success mt-2" onclick="addTrailerRego()">Add Trailer Rego</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+                    xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+                }
+            }
+        });
+
+        function addTrailerRego() {
+            const newRego = $('#newTrailerRego').val();
+            if (newRego) {
+                $.post('/add_trailer/', { rego_number: newRego }, function(response) {
+                    location.reload(); // Reload the page
+
+                    if (response.status === 'success') {
+                        const newRow = `<tr><td class="text-center">${response.rego_number}</td></tr>`;
+                        $('#trailersTable tbody').append(newRow);
+                        $('#newTrailerRego').val(''); // Clear input field
+
+                    } else if (response.status === 'exists') {
+                        alert(response.message); 
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                }).fail(function(xhr) {
+                    alert('Error: ' + xhr.responseText);
+                });
+            } else {
+                alert('Please enter a trailer registration number.');
+            }
+        }
+    </script>
+
+</body>
+</html>
+{% endblock %}

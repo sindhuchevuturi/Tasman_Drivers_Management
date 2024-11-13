@@ -1,0 +1,1446 @@
+{% extends 'base.html' %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Management</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Include jQuery (required by Select2) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!-- Include Select2 CSS and JavaScript -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+    <style>
+
+        /* Dropdown styling */
+.dropdown {
+    position: relative;
+}
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.dropdown-menu.show {
+    display: block;
+}
+.dropdown-menu input {
+    margin-bottom: 5px;
+}
+.dropdown-menu ul {
+    list-style: none;
+    padding: 0;
+}
+.dropdown-menu li {
+    padding: 5px;
+    cursor: pointer;
+}
+.dropdown-menu li:hover {
+    background-color: #f0f0f0;
+}
+
+        #buttonContainer {
+    position: fixed; /* Fix the position of the container */
+    bottom: 20px; /* Distance from the bottom of the viewport */
+    left: 50%; /* Center the buttons horizontally */
+    transform: translateX(-50%); /* Adjust for centering */
+    display: flex; /* Align buttons in a row */
+    gap: 10px; /* Space between buttons */
+    z-index: 1000; /* Make sure it's above other content */
+}
+
+
+#popupModal {
+    overflow-y: auto; /* Allow scrolling for modal content */
+    max-height: 100vh; /* Limit modal height */
+}
+body {
+    background-color: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+table {
+    margin-top: 20px;
+}
+
+.scrollable-table {
+    max-height: 400px; /* Set the maximum height */
+    overflow-y: auto; /* Enable vertical scrolling */
+    border: 1px solid #dee2e6; /* Add border around the table */
+    border-radius: 0.25rem; /* Optional: Rounded corners */
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5; /* Lower z-index for the sticky header */
+    background-color: white; /* Background color for the sticky header */
+}
+
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; 
+    z-index: 1000; /* Higher z-index for the modal */
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    background-color: rgba(0, 0, 0, 0.5); 
+    overflow: auto; 
+}
+
+.modal-content {
+    background-color: #fff;
+    width: 80%;
+    max-width: 600px;
+    margin: auto;
+    padding: 0;
+    border: 1px solid #888;
+    border-radius: 8px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    margin: 8px;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-scrollable-content {
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto; /* Make this section scrollable */
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 10px 16px;
+    border-top: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+.modal-actions button {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal-actions button:hover {
+    background-color: #0056b3;
+}
+
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <h1>Job Management</h1>
+        
+        <div id="popupModal" class="modal">
+            <div class="modal-content">
+                <span onclick="closePopup()" class="close">&times;</span>
+                
+                <!-- Scrollable content -->
+                <div id="modalContent" class="modal-scrollable-content"></div>
+            
+                <!-- Fixed buttons -->
+                <div class="modal-actions">
+                    <button id="editButton" onclick="edit(this)">Edit</button>
+                    <button onclick="saveDetails()">Save</button>
+                </div>
+            </div>
+        </div>
+                
+        
+        
+        <!-- <button onclick="closePopup()">Close</button> -->
+    </div>
+</div>
+
+<form id="jobForm" onsubmit="addJob(); return false;" novalidate>
+    <div class="form-row">
+        <div class="form-group col-md-3">
+            <input type="text" id="newJob" class="form-control" placeholder="Job Name">
+        </div>
+        <div class="form-group col-md-3">
+            <input type="text" id="newJobCount" class="form-control" placeholder="Job Count"  oninput="validateJobCount(this)">
+        </div>
+        <div class="form-group col-md-3">
+            <input type="date" id="newJobDate" class="form-control">
+        </div>
+        <div class="form-group col-md-3">
+            <select id="newTrailerType" class="form-control">
+                <option value="">Select Trailer Type</option>
+                <option value="S">S</option>
+                <option value="SDL">SDL</option>
+                <option value="RT">RT</option>
+                <option value="BDBL">BDBL</option>
+            </select>
+        </div>
+    </div>
+    <button class="btn btn-primary">Add Job</button>
+        <div class="scrollable-table">
+        <table class="table table-striped" id="jobsTable">
+            <thead>
+                <tr>
+                    <th>Job Date</th>
+                    <th>Client Name</th>
+                    <th>Trailer Type</th>
+                    <th>Job Count</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr data-id="{{ job.id }}">
+                    <td>{{ job.job_date }}</td>
+                    <td>{{ job.job_name }}</td>
+                    <td>{{ job.trailer_type }}</td>
+                    <td>{{ job.job_count }}</td>
+                    <td>
+                        <button class="btn btn-warning edit-btn" type="button"onclick="editJob(this, {{ job.id }})">Edit</button>
+                        <button class="btn btn-danger delete-btn"type="button" onclick="deleteJob({{ job.id }}, this)">Delete</button>
+                        <button class="btn btn-success confirm-btn" type="button" onclick="confirmJob(this)">Confirm</button>
+
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</formf>
+    <br>
+ <!-- Roster Table Section -->
+ <a href="{% url 'export_roster_csv' %}" class="btn btn-primary">
+    <i class="fa fa-download"></i> Download Roster CSV
+</a>
+<br>
+ <h2>Roster Table</h2>
+ <!-- <div class="scrollable-table"> -->
+     <table class="table table-bordered" id="rosterTable">
+         <thead>
+             <tr>
+                 <th>Date</th> 
+                 <th>Vehicle Rego</th>
+                 <th>Trailer Rego</th>
+                 <th>Trailer Rego 2</th>
+                 <th>Trailer Rego 3</th>
+                 <th>Trailer Type</th>
+                 <th>Start Time</th>
+                 <th>Finish Time</th>
+                 <th>Client Name</th>
+                 <th>Wharf Status</th>
+                 <th>Construction Site</th>
+                 <th>Driver</th>
+                 <th>Notes</th>
+                 {% comment %} <th>Confirm</th> {% endcomment %}
+             </tr>
+         </thead>
+         <tbody>
+             <!-- Dynamically added roster rows will appear here -->
+                {% for roster in rosters %}
+                <tr data-id="{{ roster.id }}">
+                    <td>{{ roster.job_date }}</td>
+                    <td>{{ roster.vehicle }}</td>
+                    <td>{{ roster.trailer1 }}</td>
+                    <td>{{ roster.trailer2 }}</td>
+                    <td>{{ roster.trailer3 }}</td>
+                    <td>{{ roster.trailer_type }}</td>
+                    <td>{{ roster.start_time }}</td>
+                    <td>{{ roster.end_time }}</td>
+                    <td>{{ roster.client_name }}</td>
+                    <td>{{ roster.wharf_status }}</td>
+                    <td>{{ roster.construction_site }}</td>
+                    <td>{{ roster.driver }}</td>
+                    <td>{{ roster.notes }}</td>
+         
+                    {% comment %} <td>
+                        <button class="btn btn-warning btn-sm edit-btn" onclick="editRoster(this, {{ roster.id }})">Edit</button>
+                        <button class="btn btn-danger btn-sm delete-btn" onclick="deleteDriver({{ roster.id }})">Delete</button>
+                    </td> {% endcomment %}
+                </tr>
+                {% endfor %}
+         </tbody>
+     </table>
+ <!-- </div> -->
+
+</div>
+
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+// Toggle dropdown visibility
+// function jobtoggleDropdown() {
+//     document.getElementById('dropdownMenu').classList.toggle('show');
+//     document.getElementById('dropdownSearch').focus();
+// }
+
+// // Filter options based on search input
+// function jobfilterDropdown() {
+//     const filter = document.getElementById('dropdownSearch').value.toUpperCase();
+//     const options = document.getElementById('dropdownOptions').getElementsByTagName('li');
+    
+//     for (let i = 0; i < options.length; i++) {
+//         const txtValue = options[i].textContent || options[i].innerText;
+//         options[i].style.display = txtValue.toUpperCase().includes(filter) ? '' : 'none';
+//     }
+// }
+
+// // Select an option from the dropdown
+// function jobselectOption(value) {
+//     document.getElementById('searchTrailer').value = value;
+//     document.getElementById('dropdownMenu').classList.remove('show');
+// }
+
+// // Close dropdown when clicking outside
+// document.addEventListener('click', function(event) {
+//     const dropdown = document.getElementById('dropdownMenu');
+//     const trigger = document.getElementById('searchTrailer');
+    
+//     if (!dropdown.contains(event.target) && !trigger.contains(event.target)) {
+//         dropdown.classList.remove('show');
+//     }
+// });
+
+function validateJobCount(input) {
+    input.value = input.value.replace(/\D/g, ''); // Allow only digits
+}
+
+window.onload = function() {
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
+    var yyyy = today.getFullYear();
+    today = yyyy + '-' + mm + '-' + dd;
+    
+    document.getElementById("newJobDate").value = today;
+}
+function addJob() {
+    const newJob = document.getElementById('newJob').value.trim();
+    let newJobCount = parseInt(document.getElementById('newJobCount').value.trim());
+    let newJobDate = document.getElementById('newJobDate').value; 
+    const newTrailerType = document.getElementById('newTrailerType').value;
+    const dateObj = new Date(newJobCount);
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    let formattedDate = new Intl.DateTimeFormat('en-US', options).format(dateObj);
+
+    // Add period after month abbreviation
+    formattedDate = formattedDate.replace(/(\w{3})(\s)/, '$1. ');
+
+    // Send the new job data to the server
+    fetch('/jobs_add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')  // Add CSRF token if you're using Django
+        },
+        body: new URLSearchParams({
+            'job_name': newJob,
+            'job_count': newJobCount,
+            'job_date': newJobDate,
+            'trailer_type': newTrailerType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Add the new job to the table
+            const jobsTable = document.getElementById('jobsTable').querySelector('tbody');
+            const newRow = jobsTable.insertRow();
+            newRow.setAttribute("data-id", data.job.id); // Assuming 'job_id' is returned from the server
+
+            newRow.innerHTML = `
+                <td>${formattedDate}</td>
+                <td>${newJob}</td>
+                <td>${newTrailerType}</td>
+                <td>${newJobCount}</td>
+                <td>
+                    <button class="btn btn-warning edit-btn"  type="button"  onclick="editJob(this, ${data.job.id})">Edit</button>
+                    <button class="btn btn-danger delete-btn" type="button"   onclick="deleteJob(${data.job.id}, this)">Delete</button>
+                    <button class="btn btn-success confirm-btn"  type="button"  onclick="confirmJob(this)">Confirm</button>
+                </td>
+            `;
+            // resetJobForm();
+        } else {
+            alert(data.message);
+        }
+    });
+}
+
+function deleteJob(jobId, button) {
+    console.log("Deleting job with ID:", jobId);
+    if (confirm("Are you sure you want to delete this job?")) {
+        fetch(`/jobs/delete/${jobId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')  // Add CSRF token if you're using Django
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const row = button.closest('tr');
+                row.remove(); // Remove the job row from the table
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+}
+function confirmJob(button) {
+    const row = button.closest('tr');
+    const jobDate = row.cells[0].innerText;
+    const clientName = row.cells[1].innerText;
+    const trailerType = row.cells[2].innerText;
+    const jobCount = parseInt(row.cells[3].innerText);
+
+    const rosterTable = document.getElementById('rosterTable').querySelector('tbody');
+
+    for (let i = 0; i < jobCount; i++) {
+        const newRosterRow = rosterTable.insertRow(0);
+        newRosterRow.innerHTML = `
+            <td>${jobDate}</td>
+
+            <td><div class="dropdown">${getVehicleDropdown('vehicleRego1')}</div></td>
+
+            <!-- Trailer Type Dropdown -->
+            <td><div class="dropdown">${getTrailerDropdown('trailerRego1')}</div></td>
+            <td><div class="dropdown">${getTrailerDropdown('trailerRego2')}</div></td>
+            <td><div class="dropdown">${getTrailerDropdown('trailerRego3')}</div></td>
+            <td>${trailerType}</td>
+
+            <td><input type="time" class="form-control"></td>
+            <td><input type="time" class="form-control"></td>
+            <td>${clientName}</td>
+<td>
+    <select id="wharfStatus" class="form-control" onchange="checkDropdowns()">
+        <option value="">Select Wharf Status</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+    </select>
+</td>
+<td>
+    <select id="constructionSite" class="form-control" onchange="checkDropdowns()">
+        <option value="">Select Construction Site</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+    </select>
+</td>
+
+<td>
+    <div class="dropdown">${getDriverDropdown('driverDropdown')}</div>
+</td>
+
+            <td><input type="text" class="form-control" placeholder="Notes"></td>
+            <td><button class="btn btn-primary" type="button" onclick="saveindatabase(this)">Done</button></td>
+        `;
+
+        // Condition-based enabling/disabling of trailer rego selects
+        const trailerRegoSelect = newRosterRow.querySelector('#trailerRego1');
+        const trailerRego2Select = newRosterRow.querySelector('#trailerRego2');
+        const trailerRego3Select = newRosterRow.querySelector('#trailerRego3');
+
+        if (trailerType === 'BDBL') {
+            trailerRegoSelect.disabled = false;
+            trailerRego2Select.disabled = false;
+            trailerRego3Select.disabled = true;
+        } else if (trailerType === 'RT') {
+            trailerRegoSelect.disabled = false;
+            trailerRego2Select.disabled = false;
+            trailerRego3Select.disabled = false;
+        } else if (trailerType === 'S' || trailerType === 'SDL') {
+            trailerRegoSelect.disabled = false;
+            trailerRego2Select.disabled = true;
+            trailerRego3Select.disabled = true;
+        } else {
+            trailerRegoSelect.disabled = true;
+            trailerRego2Select.disabled = true;
+            trailerRego3Select.disabled = true;
+        }
+    }
+}
+function getDriverDropdown(id) {
+    return `
+        <input type="text" class="form-control dropdown-toggle" placeholder="Select Driver" onclick="toggleDriverDropdown(this)" autocomplete="off" id="${id}" data-driver-id="">
+        <div class="dropdown-menu">
+            <input type="text" class="form-control" placeholder="Search Driver..." oninput="filterDropdown(this)">
+            <ul class="list-unstyled" id="driverList">
+                <!-- Driver options will be populated dynamically here -->
+            </ul>
+        </div>
+    `;
+}
+
+function selectDriverOption(element, driverName, driverId) {
+    const inputField = element.closest('.dropdown-menu').previousElementSibling;
+
+    // Display the driver name in the input field
+    inputField.value = driverName;
+
+    // Store the driver ID in a data attribute
+    inputField.setAttribute('data-driver-id', driverId);
+
+    // Close the dropdown
+    toggleDriverDropdown(inputField);
+}
+function toggleDriverDropdown(element) {
+    const dropdownMenu = element.nextElementSibling;
+    dropdownMenu.classList.toggle('show');
+}
+
+function getVehicleDropdown(id) {
+        return `
+            <input type="text" class="form-control dropdown-toggle" placeholder="Select Vehicle Rego" onclick="toggleDropdown(this)" autocomplete="off" id="${id}" data-vehicle-id="">
+            <div class="dropdown-menu">
+                <input type="text" class="form-control" placeholder="Search Vehicle..." oninput="filterDropdown(this)">
+                <ul class="list-unstyled">
+                    {% for vehicle in vehicles %}
+                        <li onclick="selectVehicleOption(this, '{{ vehicle.rego_number }}', '{{ vehicle.id }}')">{{ vehicle.rego_number }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        `;
+    }
+// Helper function for trailer dropdown with search functionality
+function getTrailerDropdown(id) {
+    return `
+        <input type="text" class="form-control dropdown-toggle" placeholder="Select Trailer Rego" onclick="toggleDropdown(this)" autocomplete="off" id="${id}" data-trailer-id="">
+        <div class="dropdown-menu">
+            <input type="text" class="form-control" placeholder="Search Trailer..." oninput="filterDropdown(this)">
+            <ul class="list-unstyled">
+                {% for trailer in trailers %}
+                    <li onclick="selectOption(this, '{{ trailer.rego_number }}', '{{ trailer.id }}')">{{ trailer.rego_number }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    `;
+}
+
+
+function selectVehicleOption(element, rego_number, vehicle_id) {
+        const inputField = element.closest('.dropdown-menu').previousElementSibling;
+
+        // Display the rego_number as the visible text in the input field
+        inputField.value = rego_number;
+
+        // Store the vehicle ID in a data attribute
+        inputField.setAttribute('data-vehicle-id', vehicle_id);
+
+        // Close the dropdown
+        toggleDropdown(inputField);
+    }
+// Functions for dropdown
+// Function to toggle dropdown visibility
+function toggleDropdown(inputElement) {
+    const dropdownMenu = inputElement.nextElementSibling;
+    closeAllDropdowns(); // Close other dropdowns first
+    dropdownMenu.classList.toggle('show');
+    dropdownMenu.querySelector('input').focus();
+}
+
+// Function to filter dropdown options
+function filterDropdown(searchInput) {
+    const filter = searchInput.value.toUpperCase();
+    const options = searchInput.nextElementSibling.getElementsByTagName('li');
+
+    for (let i = 0; i < options.length; i++) {
+        const txtValue = options[i].textContent || options[i].innerText;
+        options[i].style.display = txtValue.toUpperCase().includes(filter) ? '' : 'none';
+    }
+}
+
+// Function to select an option from the dropdown
+function selectOption(element, rego_number, trailer_id) {
+    const inputField = element.closest('.dropdown-menu').previousElementSibling;
+    
+    // Display the rego_number as the visible text in the input field
+    inputField.value = rego_number; 
+
+    // Store the trailer ID in a data attribute
+    inputField.setAttribute('data-trailer-id', trailer_id);
+
+    // Close the dropdown
+    toggleDropdown(inputField);
+}
+
+
+// Function to close all dropdowns
+function closeAllDropdowns() {
+    const dropdowns = document.querySelectorAll('.dropdown-menu.show');
+    dropdowns.forEach(dropdown => dropdown.classList.remove('show'));
+}
+
+// Event listener for clicking outside the dropdown
+document.addEventListener('click', function(event) {
+    const isDropdown = event.target.closest('.dropdown');
+    if (!isDropdown) {
+        closeAllDropdowns(); // Close dropdowns if clicking outside
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+function saveindatabase(button) {
+        // Replace static text with inputs or selects for editing
+        const row = button.closest('tr');
+
+// Check if the row exists
+if (!row) {
+    console.error("Row not found");
+    return;
+}
+console.log([row.cells[2].querySelector('select')?.value || ""])
+// Extract data from the row for saving
+// const trailerId = row.cells[2].querySelector('input.dropdown-toggle').value || "";
+// const trailerId = row.cells[2].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
+    const vehicleRegos = row.cells[1].querySelector('input.dropdown-toggle').getAttribute('data-vehicle-id') || "";
+    const trailer1Rego = row.cells[2].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
+    const trailer2Rego = row.cells[3].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
+    const trailer3Rego = row.cells[4].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
+    const driverName = row.cells[11].querySelector('input.dropdown-toggle').getAttribute('data-driver-id') || "";
+
+    console.log(trailer1Rego,trailer2Rego)
+
+    const rosterData = {
+        date: row.cells[0].innerText,
+        vehicleRegos:vehicleRegos,
+        trailerRegos: [trailer1Rego, trailer2Rego, trailer3Rego],
+        trailerType: row.cells[5].innerText,
+        startTime: row.cells[6].querySelector('input')?.value || "",
+        finishTime: row.cells[7].querySelector('input')?.value || "",
+        clientName: row.cells[8].innerText,
+        wharfStatus: row.cells[9].querySelector('select')?.value || "",
+        constructionSite: row.cells[10].querySelector('select')?.value || "",
+        driverName: driverName,
+        notes: row.cells[12].querySelector('input')?.value || ""
+    };
+
+
+console.log(rosterData);
+
+// Send the data to the server
+fetch('/roster/add/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken') // CSRF token
+    },
+    body: JSON.stringify(rosterData)
+})
+.then(response => response.json())
+.then(data => {
+    if (data.status === 'success') {
+        alert('Roster saved successfully!');
+        closePopup()
+        // Convert the current row to view mode (non-editable)
+        // row.cells[1].innerText = row.cells[1].querySelector('select')?.selectedOptions[0].text || rosterData.vehicleRegos;
+
+        // Update Trailer Rego cells to display the rego number, not the id
+        // if (trailer1Rego) row.cells[2].innerText = row.cells[2].querySelector('input.dropdown-toggle')?.value;
+        // if (trailer2Rego) row.cells[3].innerText = row.cells[3].querySelector('input.dropdown-toggle')?.value;
+        // if (trailer3Rego) row.cells[4].innerText = row.cells[4].querySelector('input.dropdown-toggle')?.value;
+        row.cells[1].innerText = vehicleRegos ? row.cells[1].querySelector('input.dropdown-toggle')?.value : "";
+        row.cells[2].innerText = trailer1Rego ? row.cells[2].querySelector('input.dropdown-toggle')?.value : "";
+        row.cells[3].innerText = trailer2Rego ? row.cells[3].querySelector('input.dropdown-toggle')?.value : "";
+        row.cells[4].innerText = trailer3Rego ? row.cells[4].querySelector('input.dropdown-toggle')?.value : "";
+        row.cells[11].innerText = driverName ? row.cells[11].querySelector('input.dropdown-toggle')?.value : "";
+
+
+        // Update other fields
+        row.cells[6].innerText = rosterData.startTime;
+        row.cells[7].innerText = rosterData.finishTime;
+        row.cells[9].innerText = rosterData.wharfStatus;
+        row.cells[10].innerText = rosterData.constructionSite;
+        // row.cells[11].innerText = row.cells[11].querySelector('select').selectedOptions[0].text;
+        row.cells[12].innerText = rosterData.notes;
+
+        // Disable the Done button as this row is now in view mode
+        button.disabled = true;
+    } else {
+        alert(data.message);
+    }
+})
+.catch(error => {
+    console.error('Error saving roster data:', error);
+});
+}
+
+
+// function popup(button) {
+//     const row = button.closest('tr');
+
+//     // Gather data from the row (same as before)
+// // Gather data from the row
+// const jobDate = row.cells[0].innerText;
+// const vehicleSelect = row.cells[1].querySelector('select');
+// const trailer1Select = row.cells[2].querySelector('input.dropdown-toggle');
+// const trailer2Select = row.cells[3].querySelector('input.dropdown-toggle');
+// const trailer3Select = row.cells[4].querySelector('input.dropdown-toggle');
+// const trailerType = row.cells[5].innerText;
+// const startTime = row.cells[6].querySelector('input[type="time"]').value;
+// const endTime = row.cells[7].querySelector('input[type="time"]').value;
+// const clientName = row.cells[8].innerText;
+// const wharfStatusSelect = row.cells[9].querySelector('select');
+// const constructionSiteSelect = row.cells[10].querySelector('select');
+// const driverSelect = row.cells[11].querySelector('select');
+// const notes = row.cells[12].querySelector('input[type="text"]').value;
+// console.log("trailerType",trailerType)
+
+// // Get the selected text values safely for each select element
+// const vehicleText = vehicleSelect ? vehicleSelect.options[vehicleSelect.selectedIndex].text : "N/A";
+// // const trailertypeText = trailerType ? trailerType.options[trailerType.selectedIndex].text : "N/A";
+
+// const trailer1Text = trailer1Select && trailer1Select.value ? trailer1Select.value : "N/A";
+// const trailer2Text = trailer2Select && trailer2Select.value ? trailer2Select.value : "N/A";
+// const trailer3Text = trailer3Select && trailer3Select.value ? trailer3Select.value : "N/A";
+
+// // const trailer2Text = trailer2Select && trailer2Select.value ? trailer2Select.options[trailer2Select.selectedIndex].text : "N/A";
+// // const trailer3Text = trailer3Select && trailer3Select.value ? trailer3Select.options[trailer3Select.selectedIndex].text : "N/A";
+// const wharfStatusText = wharfStatusSelect ? wharfStatusSelect.options[wharfStatusSelect.selectedIndex].text : "N/A";
+// const constructionSiteText = constructionSiteSelect ? constructionSiteSelect.options[constructionSiteSelect.selectedIndex].text : "N/A";
+// const driverText = driverSelect ? driverSelect.options[driverSelect.selectedIndex].text : "N/A";
+// console.log(vehicleText,trailer1Text,trailer2Text,trailer3Text,wharfStatusText,constructionSiteText,driverText)
+// // Construct the HTML for the modal with an Edit button
+// const modalContent = `
+//     <h3>Roster Details</h3>
+//     <p><strong>Job Date:</strong> <span id="editJobDate">${jobDate}</span></p>
+//     <p><strong>Vehicle:</strong> <span id="editVehicle">${vehicleText}</span></p>
+//     <p><strong>Trailer 1:</strong> <span id="editTrailer1">${trailer1Text}</span></p>
+//     <p><strong>Trailer 2:</strong> <span id="editTrailer2">${trailer2Text}</span></p>
+//     <p><strong>Trailer 3:</strong> <span id="editTrailer3">${trailer3Text}</span></p>
+//     <p><strong>Trailer Type:</strong> <span id="editTrailerType">${trailerType}</span></p>
+//     <p><strong>Start Time:</strong> <span id="editStartTime">${startTime}</span></p>
+//     <p><strong>End Time:</strong> <span id="editEndTime">${endTime}</span></p>
+//     <p><strong>Client Name:</strong> <span id="editClientName">${clientName}</span></p>
+//     <p><strong>Wharf Status:</strong> <span id="editWharfStatus">${wharfStatusText}</span></p>
+//     <p><strong>Construction Site:</strong> <span id="editConstructionSite">${constructionSiteText}</span></p>
+//     <p><strong>Driver:</strong> <span id="editDriver">${driverText}</span></p>
+//     <p><strong>Notes:</strong> <span id="editNotes">${notes}</span></p>
+//     <div id="buttonContainer">
+//         <button class="btn btn-primary" id="editButton">Edit</button>
+//         <button class="btn btn-primary" id="saveindatabase">Done</button>
+//     </div>
+// `;    document.getElementById('modalContent').innerHTML = modalContent;
+
+//     // Show the modal
+//     document.getElementById('popupModal').style.display = 'block';
+
+//     // Add event listener for the edit button
+//     document.getElementById('editButton').addEventListener('click', function() {
+//         enableEditing();
+//     });
+//     document.getElementById('saveindatabase').addEventListener('click', function() {
+//         saveindatabase();
+//     });
+//     function enableEditing() {
+//     // Replace static text with inputs or selects for editing, pre-populating the data
+//     const jobDateDisplay = document.createElement('span');
+//     jobDateDisplay.textContent = jobDate; // Use the current job date value
+//     document.getElementById('editJobDate').innerHTML = '';
+//     document.getElementById('editJobDate').appendChild(jobDateDisplay);
+
+//     // Pre-select the current vehicle in the dropdown
+//     const vehicleHTML = vehicleSelect.outerHTML.replace(
+//         `value="${vehicleSelect.value}"`,
+//         `value="${vehicleSelect.value}" selected`
+//     );
+//     // console.log("edit ma",vehicleHTML)
+//     document.getElementById('editVehicle').innerHTML = vehicleHTML;
+
+//     // Pre-select the current trailers
+//     const trailer1HTML = trailer1Select ? trailer1Select.outerHTML.replace(
+//         `value="${trailer1Select.value}"`,
+//         `value="${trailer1Select.value}" selected`
+//     ) : "N/A";
+//     document.getElementById('editTrailer1').innerHTML = trailer1HTML;
+
+//     const trailer2HTML = trailer2Select ? trailer2Select.outerHTML.replace(
+//         `value="${trailer2Select.value}"`,
+//         `value="${trailer2Select.value}" selected`
+//     ) : "N/A";
+//     document.getElementById('editTrailer2').innerHTML = trailer2HTML;
+
+//     const trailer3HTML = trailer3Select ? trailer3Select.outerHTML.replace(
+//         `value="${trailer3Select.value}"`,
+//         `value="${trailer3Select.value}" selected`
+//     ) : "N/A";
+//     document.getElementById('editTrailer3').innerHTML = trailer3HTML;
+
+//     document.getElementById('editStartTime').innerHTML = `<input type="time" value="${startTime}">`;
+//     document.getElementById('editEndTime').innerHTML = `<input type="time" value="${endTime}">`;
+
+//     // Pre-select the current wharf status
+//     const wharfStatusHTML = wharfStatusSelect.outerHTML.replace(
+//         `value="${wharfStatusSelect.value}"`,
+//         `value="${wharfStatusSelect.value}" selected`
+//     );
+//     document.getElementById('editWharfStatus').innerHTML = wharfStatusHTML;
+
+//     // Pre-select the current construction site
+//     const constructionSiteHTML = constructionSiteSelect.outerHTML.replace(
+//         `value="${constructionSiteSelect.value}"`,
+//         `value="${constructionSiteSelect.value}" selected`
+//     );
+//     document.getElementById('editConstructionSite').innerHTML = constructionSiteHTML;
+
+//     // Pre-select the current driver
+//     const driverHTML = driverSelect.outerHTML.replace(
+//         `value="${driverSelect.value}"`,
+//         `value="${driverSelect.value}" selected`
+//     );
+//     document.getElementById('editDriver').innerHTML = driverHTML;
+
+//     document.getElementById('editNotes').innerHTML = `<input type="text" value="${notes}">`;
+
+//     // Replace the Edit button with Save and Cancel buttons
+//     document.getElementById('modalContent').innerHTML += `
+//         <div id="buttonContainer">
+//             <button class="btn btn-primary" id="saveButton">Save</button>
+//             <button class="btn btn-secondary" id="cancelButton">Cancel</button>
+//         </div>
+//     `;
+
+//     document.getElementById('saveButton').addEventListener('click', saveChanges);
+//     document.getElementById('cancelButton').addEventListener('click', cancelEditing);
+//     document.getElementById('editButton').style.display = 'none'; // Hide the edit button during editing
+//     document.getElementById('saveindatabase').style.display = 'none'; // Hide the "Done" button during editing
+// }
+    
+
+//     function cancelEditing() {
+//         // Restore the non-editable view with the original values
+//         console.log("hello")
+//         document.getElementById('editJobDate').innerText = jobDate;
+
+//         document.getElementById('editVehicle').innerText = vehicleSelect.options[0].text;
+//         document.getElementById('editTrailer1').innerText = trailer1Select ? trailer1Select.options[0].text : "N/A";
+//         document.getElementById('editTrailer2').innerText = trailer2Select ? trailer2Select.options[0].text : "N/A";
+//         document.getElementById('editTrailer3').innerText = trailer3Select ? trailer3Select.options[0].text : "N/A";
+//         document.getElementById('editStartTime').innerText = startTime;
+//         document.getElementById('editEndTime').innerText = endTime;
+
+//         document.getElementById('editWharfStatus').innerText = wharfStatusSelect.options[0].text;
+//         document.getElementById('editConstructionSite').innerText = constructionSiteSelect.options[0].text;
+//         document.getElementById('editDriver').innerText = driverSelect.options[0].text;
+//         document.getElementById('editNotes').innerText = notes;
+
+//         // Hide the Save and Cancel buttons and show the Edit button
+//         document.getElementById('saveButton').remove();
+//         document.getElementById('cancelButton').remove();
+//         document.getElementById('editButton').style.display = 'inline';
+//         document.getElementById('saveindatabase').style.display = 'inline';
+
+//         // Re-add the event listener for the Edit button
+//         document.getElementById('editButton').addEventListener('click', enableEditing);
+//         document.getElementById('saveindatabase').addEventListener('click', saveindatabase);
+
+//     }
+
+//     function saveChanges() {
+//     // Gather the new values from the inputs
+//     // const newJobDate = document.querySelector('#editJobDate input').value;
+//     console.log(getVehicleName('#editVehicle select'))
+//     console.log(getTrailerText('#editTrailer1 select'))
+//     const newVehicle = getVehicleName('#editVehicle select');
+//     const newTrailer1 = getTrailerName('#editTrailer1 select');
+//     const newTrailer2 = getTrailerName('#editTrailer2 select');
+//     const newTrailer3 = getTrailerName('#editTrailer3 select');
+//     const newStartTime = document.querySelector('#editStartTime input').value;
+//     const newEndTime = document.querySelector('#editEndTime input').value;
+//     const newWharfStatus = document.querySelector('#editWharfStatus select').value;
+//     const newConstructionSite = document.querySelector('#editConstructionSite select').value;
+//     const newDriver = getDriverName('#editDriver select');
+//     const newNotes = document.querySelector('#editNotes input').value;
+//     console.log("newVehicle",newVehicle,"newTrailer1 ",getTrailerText('#editTrailer1 select'), newTrailer2,newTrailer3,newStartTime,newEndTime,newWharfStatus,newConstructionSite,newDriver,newNotes)
+//     // Update the row with the new values
+//     // row.cells[0].innerText = newJobDate;
+//     console.log("before",row.cells[1].querySelector('select').value,row.cells[2].querySelector('select').value,row.cells[2].querySelector('select').value,row.cells[3].querySelector('select').value,row.cells[4].querySelector('select').value,row.cells[11].querySelector('select').value)
+//     row.cells[1].querySelector('select').value = newVehicle;
+//     row.cells[2].querySelector('select').value = newTrailer1;
+//     row.cells[3].querySelector('select').value = newTrailer2;
+//     row.cells[4].querySelector('select').value = newTrailer3;
+//     row.cells[6].querySelector('input[type="time"]').value = newStartTime;
+//     row.cells[7].querySelector('input[type="time"]').value = newEndTime;
+//     row.cells[9].querySelector('select').value = newWharfStatus;
+//     row.cells[10].querySelector('select').value = newConstructionSite;
+//     row.cells[11].querySelector('select').value = newDriver;
+//     row.cells[12].querySelector('input[type="text"]').value = newNotes;
+//     console.log("after",row.cells[1].querySelector('select').value,row.cells[2].querySelector('select').value,row.cells[2].querySelector('select').value,row.cells[3].querySelector('select').value,row.cells[4].querySelector('select').value,row.cells[11].querySelector('select').value,row.cells[6].querySelector('input[type="time"]').value,row.cells[7].querySelector('input[type="time"]').value,row.cells[9].querySelector('select').value,row.cells[10].querySelector('select').value)
+
+//     showUpdatedData( getVehicleText('#editVehicle select'), getTrailerText('#editTrailer1 select'), getTrailerText('#editTrailer2 select'), getTrailerText('#editTrailer3 select'), newStartTime, newEndTime, newWharfStatus, newConstructionSite, getDriverText('#editDriver select'), newNotes);
+
+//     // Display the updated data in the modal again
+//     // showUpdatedData(newJobDate, newVehicle, newTrailer1, newTrailer2, newTrailer3, newStartTime, newEndTime, newWharfStatus, newConstructionSite, newDriver, newNotes);
+// }
+
+// function getVehicleName(selectSelector) {
+//     const selectElement = document.querySelector(selectSelector);
+//     const selectedOption = selectElement.options[selectElement.selectedIndex];
+//     return selectedOption ? selectedOption.value : "N/A"; // Return the display name, or "N/A" if no option is selected
+// }
+// function getVehicleText(selectSelector) {
+//     const selectElement = document.querySelector(selectSelector);
+//     const selectedOption = selectElement.options[selectElement.selectedIndex];
+//     return selectedOption ? selectedOption.text : "N/A"; // Return the display name, or "N/A" if no option is selected
+// }
+// function getTrailerText(selectSelector) {
+//     const selectElement = document.querySelector(selectSelector);
+//     if (!selectElement) {
+//         return "N/A"; // Return "N/A" if the select element doesn't exist
+//     }
+//     const selectedOption = selectElement.options[selectElement.selectedIndex];
+//     return selectedOption && selectElement.value ? selectedOption.text : "N/A";
+// }
+
+// function getTrailerName(selectSelector) {
+//     const selectElement = document.querySelector(selectSelector);
+//     const selectedOption = selectElement.options[selectElement.selectedIndex];
+//     return selectedOption ? selectedOption.value : "N/A"; // Return the display name, or "N/A" if no option is selected
+// }
+// function getDriverName(selectSelector) {
+//     const selectElement = document.querySelector(selectSelector);
+//     const selectedOption = selectElement.options[selectElement.selectedIndex];
+//     return selectedOption ? selectedOption.value : "N/A"; // Return the display name, or "N/A" if no option is selected
+// }
+// function getDriverText(selectSelector) {
+//     const selectElement = document.querySelector(selectSelector);
+//     const selectedOption = selectElement.options[selectElement.selectedIndex];
+//     return selectedOption ? selectedOption.text : "N/A"; // Return the display name, or "N/A" if no option is selected
+// }
+
+// // function showUpdatedData(jobDate, vehicle, trailer1, trailer2, trailer3, startTime, endTime, wharfStatus, constructionSite, driver, notes) {
+//     function showUpdatedData( vehicle, trailer1, trailer2, trailer3, startTime, endTime, wharfStatus, constructionSite, driver, notes) {
+// console.log(trailer1)
+// // Construct the HTML for the modal with updated values
+//     const modalContent = `
+//         <h3>Roster Details</h3>
+//         <p><strong>Job Date:</strong> <span id="editJobDate">${jobDate}</span></p>
+//         <p><strong>Vehicle:</strong> <span id="editVehicle">${vehicle}</span></p>
+//         <p><strong>Trailer 1:</strong> <span id="editTrailer1">${trailer1}</span></p>
+//         <p><strong>Trailer 2:</strong> <span id="editTrailer2">${trailer2 ? trailer2 : "N/A"}</span></p>
+//         <p><strong>Trailer 3:</strong> <span id="editTrailer3">${trailer3 ? trailer3 : "N/A"}</span></p>
+//         <p><strong>Start Time:</strong> <span id="editStartTime">${startTime}</span></p>
+//         <p><strong>End Time:</strong> <span id="editEndTime">${endTime}</span></p>
+//         <p><strong>Wharf Status:</strong> <span id="editWharfStatus">${wharfStatus}</span></p>
+//         <p><strong>Construction Site:</strong> <span id="editConstructionSite">${constructionSite}</span></p>
+//         <p><strong>Driver:</strong> <span id="editDriver">${driver}</span></p>
+//         <p><strong>Notes:</strong> <span id="editNotes">${notes}</span></p>
+//             <div id="buttonContainer">
+
+//         <button class="btn btn-primary" id="editButton">Edit</button>
+//         <button class="btn btn-primary" id="saveindatabase">Done</button>
+
+//     </div>
+//     `;
+
+//     document.getElementById('modalContent').innerHTML = modalContent;
+
+//     // Add event listener for the edit button
+//     document.getElementById('editButton').addEventListener('click', function() {
+//         enableEditing();
+//     });
+//     // document.getElementById('cancelButton').addEventListener('click', cancelEditing);
+
+//     document.getElementById('saveindatabase').addEventListener('click', function() {
+//         saveindatabase();
+//     });
+// }
+
+// }
+
+
+function closePopup() {
+    document.getElementById('popupModal').style.display = 'none';
+}
+// function edit(button) {
+//     console.log("Button clicked:", button);
+    
+//     const row = button.closest('tr'); // Get the closest table row to the button
+//     console.log("Row found:", row); // Log the found row
+//     if (!row) return; // Ensure row is found
+
+//     // Gather data from the row
+//     const jobDate = row.cells[0]?.innerText || ''; 
+//     const vehicleSelect = row.cells[1]?.querySelector('select');
+//     const trailer1Select = row.cells[2]?.querySelector('select');
+//     const trailer2Select = row.cells[3]?.querySelector('select');
+//     const trailer3Select = row.cells[4]?.querySelector('select');
+//     const trailerType = row.cells[5]?.innerText || '';
+//     const startTime = row.cells[6]?.querySelector('input[type="time"]')?.value || '';
+//     const endTime = row.cells[7]?.querySelector('input[type="time"]')?.value || '';
+//     const clientName = row.cells[8]?.innerText || '';
+//     const wharfStatusSelect = row.cells[9]?.querySelector('select');
+//     const constructionSiteSelect = row.cells[10]?.querySelector('select');
+//     const driverSelect = row.cells[11]?.querySelector('select');
+//     const notes = row.cells[12]?.querySelector('input[type="text"]')?.value || '';
+
+//     // Construct the HTML for the modal with editable fields
+//     const modalContent = `
+//         <h3>Edit Roster Details</h3>
+//         <p><strong>Job Date:</strong> <input type="text" value="${jobDate}" /></p>
+//         <p><strong>Vehicle:</strong> 
+//             <select>
+//                 ${vehicleSelect ? Array.from(vehicleSelect.options).map(option => 
+//                     `<option value="${option.value}" ${option.value === vehicleSelect.value ? 'selected' : ''}>${option.text}</option>`).join('') : ''}
+//             </select>
+//         </p>
+//         <p><strong>Trailer 1:</strong> 
+//             <select>
+//                 ${trailer1Select ? Array.from(trailer1Select.options).map(option => 
+//                     `<option value="${option.value}" ${option.value === trailer1Select.value ? 'selected' : ''}>${option.text}</option>`).join('') : ''}
+//             </select>
+//         </p>
+//         <p><strong>Trailer 2:</strong> 
+//             <select>
+//                 ${trailer2Select ? Array.from(trailer2Select.options).map(option => 
+//                     `<option value="${option.value}" ${option.value === trailer2Select.value ? 'selected' : ''}>${option.text}</option>`).join('') : '<option>N/A</option>'}
+//             </select>
+//         </p>
+//         <p><strong>Trailer 3:</strong> 
+//             <select>
+//                 ${trailer3Select ? Array.from(trailer3Select.options).map(option => 
+//                     `<option value="${option.value}" ${option.value === trailer3Select.value ? 'selected' : ''}>${option.text}</option>`).join('') : '<option>N/A</option>'}
+//             </select>
+//         </p>
+//         <p><strong>Trailer Type:</strong> <input type="text" value="${trailerType}" /></p>
+//         <p><strong>Start Time:</strong> <input type="time" value="${startTime}" /></p>
+//         <p><strong>End Time:</strong> <input type="time" value="${endTime}" /></p>
+//         <p><strong>Client Name:</strong> <input type="text" value="${clientName}" /></p>
+//         <p><strong>Wharf Status:</strong> 
+//             <select>
+//                 ${wharfStatusSelect ? Array.from(wharfStatusSelect.options).map(option => 
+//                     `<option value="${option.value}" ${option.value === wharfStatusSelect.value ? 'selected' : ''}>${option.text}</option>`).join('') : ''}
+//             </select>
+//         </p>
+//         <p><strong>Construction Site:</strong> 
+//             <select>
+//                 ${constructionSiteSelect ? Array.from(constructionSiteSelect.options).map(option => 
+//                     `<option value="${option.value}" ${option.value === constructionSiteSelect.value ? 'selected' : ''}>${option.text}</option>`).join('') : ''}
+//             </select>
+//         </p>
+//         <p><strong>Driver:</strong> 
+//             <select>
+//                 ${driverSelect ? Array.from(driverSelect.options).map(option => 
+//                     `<option value="${option.value}" ${option.value === driverSelect.value ? 'selected' : ''}>${option.text}</option>`).join('') : ''}
+//             </select>
+//         </p>
+//         <p><strong>Notes:</strong> <input type="text" value="${notes}" /></p>
+//         <button id="saveChanges">Save Changes</button>
+//     `;
+
+//     document.getElementById('modalContent').innerHTML = modalContent;
+//     document.getElementById('popupModal').style.display = 'block';
+
+//     // Save changes functionality
+//     document.getElementById('saveChanges').onclick = function() {
+//         const updatedJobDate = document.querySelector('input[type="text"]').value;
+//         const updatedVehicle = document.querySelectorAll('select')[0].value; // Vehicle select
+//         const updatedTrailer1 = document.querySelectorAll('select')[1].value; // Trailer 1 select
+//         const updatedTrailer2 = document.querySelectorAll('select')[2].value; // Trailer 2 select
+//         const updatedTrailer3 = document.querySelectorAll('select')[3].value; // Trailer 3 select
+//         const updatedTrailerType = document.querySelector('input[type="text"]').value; // Trailer Type
+//         const updatedStartTime = document.querySelectorAll('input[type="time"]')[0].value; // Start time
+//         const updatedEndTime = document.querySelectorAll('input[type="time"]')[1].value; // End time
+//         const updatedClientName = document.querySelectorAll('input[type="text"]')[1].value; // Client name
+//         const updatedWharfStatus = document.querySelectorAll('select')[3].value; // Wharf Status select
+//         const updatedConstructionSite = document.querySelectorAll('select')[4].value; // Construction Site select
+//         const updatedDriver = document.querySelectorAll('select')[5].value; // Driver select
+//         const updatedNotes = document.querySelectorAll('input[type="text"]')[2].value; // Notes
+
+//         // Update the row with new values
+//         row.cells[0].innerText = updatedJobDate;
+//         row.cells[1].querySelector('select').value = updatedVehicle;
+//         row.cells[2].querySelector('select').value = updatedTrailer1;
+//         if (trailer2Select) {
+//             row.cells[3].querySelector('select').value = updatedTrailer2;
+//         }
+//         if (trailer3Select) {
+//             row.cells[4].querySelector('select').value = updatedTrailer3;
+//         }
+//         row.cells[5].innerText = updatedTrailerType;
+//         row.cells[6].querySelector('input[type="time"]').value = updatedStartTime;
+//         row.cells[7].querySelector('input[type="time"]').value = updatedEndTime;
+//         row.cells[8].innerText = updatedClientName;
+//         row.cells[9].querySelector('select').value = updatedWharfStatus;
+//         row.cells[10].querySelector('select').value = updatedConstructionSite;
+//         row.cells[11].querySelector('select').value = updatedDriver;
+//         row.cells[12].querySelector('input[type="text"]').value = updatedNotes;
+
+//         // Close the modal after saving
+//         document.getElementById('popupModal').style.display = 'none';
+//     };
+// }
+
+    // const drivers = JSON.parse(document.getElementById('drivers-data').textContent);
+    // const parsedDrivers = JSON.parse(document.getElementById('drivers-data').textContent);
+// function saveRosterData(button) {
+//     const row = button.closest('tr');
+
+//     // Check if the row exists
+//     if (!row) {
+//         console.error("Row not found");
+//         return;
+//     }
+
+//     // Extract data from the row for saving
+//     const rosterData = {
+        
+//         date: row.cells[0].innerText,
+//         vehicleRegos: row.cells[1].querySelector('select')?.value || "",
+//         trailerRegos: [
+//             row.cells[2].querySelector('select')?.value || "",
+//             row.cells[3].querySelector('select')?.value || "",
+//             row.cells[4].querySelector('select')?.value || ""
+//         ],
+//         trailerType: row.cells[5].innerText,
+//         startTime: row.cells[6].querySelector('input')?.value || "",
+//         finishTime: row.cells[7].querySelector('input')?.value || "",
+//         clientName: row.cells[8].innerText,
+//         wharfStatus: row.cells[9].querySelector('select')?.value || "",
+//         constructionSite: row.cells[10].querySelector('select')?.value || "",
+//         driverName: row.cells[11].querySelector('select')?.value || "",
+//         notes: row.cells[12].querySelector('input')?.value || ""
+//     };
+
+//     console.log(rosterData);
+
+//     // Send the data to the server
+//     fetch('/roster/add/', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': getCookie('csrftoken') // CSRF token
+//         },
+//         body: JSON.stringify(rosterData)
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         if (data.status === 'success') {
+//             alert('Roster saved successfully!');
+
+//             // Convert the current row to view mode (non-editable)
+//             row.cells[1].innerText = row.cells[1].querySelector('select').selectedOptions[0].text;
+            
+//             // Update Trailer Rego fields only if they are not disabled
+//             if (!row.cells[2].querySelector('select').disabled) {
+//                 row.cells[2].innerText = row.cells[2].querySelector('select').selectedOptions[0].text;
+//             }
+//             if (!row.cells[3].querySelector('select').disabled) {
+//                 row.cells[3].innerText = row.cells[3].querySelector('select').selectedOptions[0].text;
+//             }
+//             if (!row.cells[4].querySelector('select').disabled) {
+//                 row.cells[4].innerText = row.cells[4].querySelector('select').selectedOptions[0].text;
+//             }
+
+//             // Update other fields
+//             row.cells[6].innerText = rosterData.startTime;
+//             row.cells[7].innerText = rosterData.finishTime;
+//             row.cells[9].innerText = rosterData.wharfStatus;
+//             row.cells[10].innerText = rosterData.constructionSite;
+//             row.cells[11].innerText = row.cells[11].querySelector('select').selectedOptions[0].text;
+//             row.cells[12].innerText = rosterData.notes;
+
+//             // Disable the Done button as this row is now in view mode
+//             button.disabled = true;
+//         } else {
+//             alert(data.message);
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Error saving roster data:', error);
+//     });
+// }
+
+//     function checkDropdowns() {
+//     const wharfStatus = document.getElementById('wharfStatus').value; // Get the value directly
+//     const constructionSite = document.getElementById('constructionSite').value; // Get the value directly
+//     const driverSelect = document.getElementById('driver'); // Driver dropdown
+
+//     // Clear existing options
+//     driverSelect.innerHTML = '<option value="">Select Driver</option>';
+
+//     // Prepare API call based on dropdown selections
+//     let wharfStatusValue = wharfStatus === 'Yes'; // Convert to Boolean
+//     let constructionSiteValue = constructionSite === 'Yes'; // Convert to Boolean
+//     console.log("wharfStatusValue",wharfStatusValue,"constructionSiteValue",constructionSiteValue)
+//     // Make API request to get filtered drivers based on the selections
+//     fetch(`/api/get_filtered_drivers?wharfStatus=${wharfStatusValue}&constructionSite=${constructionSiteValue}`)
+//         .then(response => response.json())
+//         .then(data => {
+//             // Populate the driver dropdown with eligible drivers
+//             data.forEach(driver => {
+//                 const option = document.createElement('option');
+//                 option.value = driver.id;  // Assuming you have an 'id' field
+//                 option.textContent = driver.name; // Assuming you have a 'name' field
+//                 driverSelect.appendChild(option);
+//             });
+//         })
+//         .catch(error => {
+//             console.error('Error fetching filtered drivers:', error);
+//         });
+// }
+//     // Add event listeners to both dropdowns
+
+//     function resetJobForm() {
+//             document.getElementById('newJob').value = '';
+//             document.getElementById('newJobCount').value = '';
+//             document.getElementById('newJobDate').value = '';
+//             document.getElementById('newTrailerType').value = '';
+//             document.getElementById('wharfStatus').addEventListener('change', checkDropdowns);
+//             document.getElementById('constructionSite').addEventListener('change', checkDropdowns);
+
+//         }
+function checkDropdowns() {
+    const wharfStatus = document.getElementById('wharfStatus').value;
+    const constructionSite = document.getElementById('constructionSite').value;
+    const driverList = document.getElementById('driverList'); // Target the list in the driver dropdown
+
+    // Clear existing options
+    driverList.innerHTML = '';
+
+    // Convert to boolean for API parameters
+    const wharfStatusValue = wharfStatus === 'Yes';
+    const constructionSiteValue = constructionSite === 'Yes';
+
+    // Fetch filtered drivers based on dropdown selections
+    fetch(`/api/get_filtered_drivers?wharfStatus=${wharfStatusValue}&constructionSite=${constructionSiteValue}`)
+        .then(response => response.json())
+        .then(data => {
+            // Populate the driver dropdown with eligible drivers
+            data.forEach(driver => {
+                const listItem = document.createElement('li');
+                listItem.onclick = () => selectDriverOption(listItem, driver.name, driver.id);
+                listItem.textContent = driver.name;
+                driverList.appendChild(listItem);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching filtered drivers:', error);
+        });
+}
+
+        
+        function updateStatus(select) {
+            const selectedOption = select.options[select.selectedIndex];
+            const hasWhiteCard = selectedOption.getAttribute('data-has-white-card');
+            const hasMsic = selectedOption.getAttribute('data-has-msic');
+        
+            // Log the raw attribute values
+            console.log('Raw Data Attributes:', hasWhiteCard, hasMsic);
+            console.log('Parsed Boolean Values:', hasWhiteCard === 'true', hasMsic === 'true');
+        
+            const newRosterRow = select.closest('tr'); // Ensure it finds the correct row
+            const wharfStatusInput = newRosterRow.querySelector('#wharfStatus');
+            const constructionSiteInput = newRosterRow.querySelector('#constructionSite');
+        
+            // Set Wharf Status and Construction Site based on driver's attributes
+            wharfStatusInput.value = (hasMsic === 'true') ? 'True' : 'False';
+            constructionSiteInput.value = (hasWhiteCard === 'true') ? 'True' : 'False';
+        
+            // Log what values are being set
+            console.log('Setting Wharf Status:', wharfStatusInput.value);
+            console.log('Setting Construction Site:', constructionSiteInput.value);
+        }
+          
+        
+        
+
+        
+
+        // function deleteJob(jobId, button) {
+        //     console.log(jobId)
+        //     console.log("button",button)
+        //     if (confirm("Are you sure you want to delete this job?")) {
+        //         fetch(`/jobs/delete/${jobId}/`, {
+        //             method: 'DELETE',
+        //             headers: {
+        //                 'X-CSRFToken': getCookie('csrftoken')  // Add CSRF token if you're using Django
+        //             }
+        //         })
+        //         .then(response => response.json())
+        //         .then(data => {
+        //             if (data.status === 'success') {
+        //                 const row = button.closest('tr');
+        //                 row.remove(); // Remove the job row from the table
+        //             } else {
+        //                 alert(data.message);
+        //             }
+        //         });
+        //     }
+        // }
+
+        const previousValues = {};
+
+        function editJob(button, jobId) {
+            const row = button.closest('tr');
+            const jobNameCell = row.cells[1].innerText;
+            const jobCountCell = row.cells[3].innerText;
+            const trailerTypeCell = row.cells[2].innerText;
+            const dateCell = row.cells[0].innerText;
+        
+            previousValues[jobId] = {
+                jobName: jobNameCell,
+                jobCount: jobCountCell,
+                trailerType: trailerTypeCell,
+                jobDate: dateCell
+            };
+        
+            row.cells[1].innerHTML = `<input type="text" class="form-control" value="${jobNameCell}">`;
+            row.cells[3].innerHTML = `<input type="text" class="form-control rowCount" value="${jobCountCell}" oninput="validateJobCount(this)">`;
+            row.cells[2].innerHTML = `
+                <select class="form-control">
+                    <option value="S" ${trailerTypeCell === 'S' ? 'selected' : ''}>S</option>
+                    <option value="SDL" ${trailerTypeCell === 'SDL' ? 'selected' : ''}>SDL</option>
+                    <option value="RT" ${trailerTypeCell === 'RT' ? 'selected' : ''}>RT</option>
+                    <option value="BDBL" ${trailerTypeCell === 'BDBL' ? 'selected' : ''}>BDBL</option>
+                </select>
+            `;
+            row.cells[0].innerHTML = `<input type="date" class="form-control" value="${new Date(dateCell).toISOString().split('T')[0]}">`;
+        
+            button.textContent = "Save";
+            button.setAttribute("onclick", `saveJob(this, ${jobId})`);
+        
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = "Cancel";
+            cancelButton.classList.add('btn', 'btn-secondary', 'ml-2');
+            cancelButton.setAttribute("onclick", `cancelEdit(this, ${jobId})`);
+            button.after(cancelButton);
+        
+            const deleteButton = row.querySelector('.delete-btn');
+            deleteButton.style.display = "none";
+        }
+        
+        function saveJob(button, jobId) {
+            const row = button.closest('tr');
+            const jobNameCell = row.cells[1].querySelector('input').value;
+            const jobCountCell = row.cells[3].querySelector('input').value;
+            const trailerTypeCell = row.cells[2].querySelector('select').value;
+            const dateCell = row.cells[0].querySelector('input').value;
+        
+            fetch(`/jobs/edit/${jobId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')  // Add CSRF token if you're using Django
+                },
+                body: new URLSearchParams({
+                    'job_name': jobNameCell,
+                    'job_count': jobCountCell,
+                    'job_date': dateCell,
+                    'trailer_type': trailerTypeCell
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    row.cells[1].textContent = jobNameCell;
+                    row.cells[3].textContent = jobCountCell;
+                    row.cells[2].textContent = trailerTypeCell;
+                    row.cells[0].textContent = dateCell;
+        
+                    button.textContent = "Edit";
+                    button.setAttribute("onclick", `editJob(this, ${jobId})`);
+                    const cancelButton = row.querySelector('.btn-secondary');
+                    cancelButton.remove();
+                    const deleteButton = row.querySelector('.delete-btn');
+                    deleteButton.style.display = "";
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        
+        function cancelEdit(button, jobId) {
+            const row = button.closest('tr');
+            const previous = previousValues[jobId];
+        
+            row.cells[1].textContent = previous.jobName;
+            row.cells[3].textContent = previous.jobCount;
+            row.cells[2].textContent = previous.trailerType;
+            row.cells[0].textContent = previous.jobDate;
+        
+            const editButton = row.querySelector('.edit-btn');
+            editButton.textContent = "Edit";
+            editButton.setAttribute("onclick", `editJob(this, ${jobId})`);
+        
+            button.remove();
+            const deleteButton = row.querySelector('.delete-btn');
+            deleteButton.style.display = "";
+        }
+
+        // Helper function to get CSRF token for Django
+
+        // Function to get CSRF token (if required)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Check if this cookie string begins with the name we want
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        
+
+    </script>
+</body>
+</html>
+{% endblock %}
