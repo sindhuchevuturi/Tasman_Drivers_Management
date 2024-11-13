@@ -59,13 +59,15 @@
 
         <div class="mt-4">
             <h3>Add New Trailer</h3>
-            <div class="form-group">
-                <input type="text" class="form-control" id="newTrailerRego" placeholder="Add New Trailer Rego">
-                <button class="btn btn-success mt-2" onclick="addTrailerRego()">Add Trailer Rego</button>
-            </div>
+            <form method="POST" id="addTrailerForm">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="text" class="form-control" id="newTrailerRego" placeholder="Add New Trailer Rego">
+                    <button type="button" class="btn btn-success mt-2" onclick="addTrailerRego()">Add Trailer Rego</button>
+                </div>
+            </form>
         </div>
-    </div>
-
+        
     <script>
         function getCookie(name) {
             let cookieValue = null;

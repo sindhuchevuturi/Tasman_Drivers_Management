@@ -69,6 +69,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+CSRF_TRUSTED_ORIGINS = ['https://tasman-driver-management-3f95ed8c89cb.herokuapp.com']
+CSRF_COOKIE_SECURE = True
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4444",  # Add your frontend URL here
 ]

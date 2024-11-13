@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from twilio.rest import Client
 from myapp.models import Roster  # Assuming you have a Roster model
 import json
+from django.views.decorators.csrf import csrf_protect
 
 from django.conf import settings
 
@@ -21,7 +22,7 @@ def trailers_list(request):
     """Render the trailers list view"""
     trailers = Trailer.objects.all()
     return render(request, 'trailers.html', {'trailers': trailers})
-
+@csrf_protect
 def add_trailer(request):
     """Handle AJAX requests to add a new trailer"""
     if request.method == 'POST':
