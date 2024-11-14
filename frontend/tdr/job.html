@@ -201,7 +201,7 @@ table {
             <input type="text" id="newJob" class="form-control" placeholder="Job Name">
         </div>
         <div class="form-group col-md-3">
-            <input type="text" id="newJobCount" class="form-control" placeholder="Job Count"  oninput="validateJobCount(this)">
+            <input type="text" id="newJobCount" class="form-control" placeholder="Job Count" oninput="validateJobCount(this)">
         </div>
         <div class="form-group col-md-3">
             <input type="date" id="newJobDate" class="form-control">
@@ -354,20 +354,24 @@ window.onload = function() {
     var mm = String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
     var yyyy = today.getFullYear();
     today = yyyy + '-' + mm + '-' + dd;
-    
+    console.log("today", today);
     document.getElementById("newJobDate").value = today;
-}
+};
+
 function addJob() {
+    var jobDate = document.getElementById("newJobDate").value;
+    console.log("Job Date on Add Job button click:", jobDate);
     const newJob = document.getElementById('newJob').value.trim();
     let newJobCount = parseInt(document.getElementById('newJobCount').value.trim());
-    let newJobDate = document.getElementById('newJobDate').value; 
+
     const newTrailerType = document.getElementById('newTrailerType').value;
-    const dateObj = new Date(newJobCount);
+    const dateObj = new Date(jobDate); // Create a Date object using the jobDate input
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     let formattedDate = new Intl.DateTimeFormat('en-US', options).format(dateObj);
 
     // Add period after month abbreviation
     formattedDate = formattedDate.replace(/(\w{3})(\s)/, '$1. ');
+    console.log("formattedDate", formattedDate);
 
     // Send the new job data to the server
     fetch('/jobs_add/', {
@@ -379,7 +383,7 @@ function addJob() {
         body: new URLSearchParams({
             'job_name': newJob,
             'job_count': newJobCount,
-            'job_date': newJobDate,
+            'job_date': jobDate,
             'trailer_type': newTrailerType
         })
     })
