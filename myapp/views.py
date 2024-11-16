@@ -10,6 +10,8 @@ from django.http import JsonResponse
 from twilio.rest import Client
 from myapp.models import Roster  # Assuming you have a Roster model
 import json
+from django.views.decorators.csrf import csrf_protect
+from django.db.models import Q
 
 from django.conf import settings
 
@@ -413,19 +415,39 @@ def get_filtered_drivers(request):
         constructionSite = constructionSite.lower() == 'true' if constructionSite is not None else False
 
         # Print for debugging
-        print(f"Wharf Status: {wharfStatus}, Construction Site: {constructionSite}")
-        if not wharfStatus and not constructionSite:
-            # Fetch drivers excluding those with both has_msic and has_white_card set to False
-            filtered_drivers = Driver.objects.exclude(has_msic=False, has_white_card=False)
-        # Filter drivers based on the received parameters
+        print(f"Wharf Status11: {wharfStatus}, Construction Site11: {constructionSite}")
+        print( Driver.objects.filter(has_msic=True, has_white_card=True))
+
+        if wharfStatus and constructionSite:
+            # Both are True, fetch drivers with both `has_msic=True` and `has_white_card=True`
+            print("hello1")
+            filtered_drivers = Driver.objects.filter(has_msic=True, has_white_card=True)
+            print("filtered_drivers",filtered_drivers)
+        elif wharfStatus or constructionSite:
+            # Either one is True, fetch drivers matching either condition
+            print("hello2")
+            filtered_drivers = Driver.objects.filter(
+                Q(has_msic=wharfStatus) | Q(has_white_card=constructionSite)
+            )
+            print("filtered_drivers",filtered_drivers)
+
         else:
-            filtered_drivers = Driver.objects.filter(has_msic=wharfStatus, has_white_card=constructionSite)
+            print("hello3")
+            # Both are False, fetch all drivers except those with both `has_msic=False` and `has_white_card=False`
+            filtered_drivers = Driver.objects.exclude(has_msic=False, has_white_card=False)
+            print("filtered_drivers",filtered_drivers)
+
+        # Exclude drivers who are on leave in all cases
+        filtered_drivers = filtered_drivers.exclude(on_leave=True)
+
+        # Print for debugging
+        print("Filtered Drivers:", filtered_drivers)
 
         # Prepare driver data for the response
         driver_data = [{'id': driver.id, 'name': driver.name} for driver in filtered_drivers]
 
-        return JsonResponse(driver_data, safe=False)
-
+        # Return the response
+        return JsonResponse( driver_data ,safe=False)
 
 import csv
 from django.http import HttpResponse

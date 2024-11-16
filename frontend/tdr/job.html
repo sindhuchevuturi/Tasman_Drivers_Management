@@ -1244,6 +1244,8 @@ function closePopup() {
 //             document.getElementById('constructionSite').addEventListener('change', checkDropdowns);
 
 //         }
+let timeoutId;  // Declare timeoutId outside the function to keep track of it globally
+
 function checkDropdowns() {
     const wharfStatus = document.getElementById('wharfStatus').value;
     const constructionSite = document.getElementById('constructionSite').value;
@@ -1256,21 +1258,29 @@ function checkDropdowns() {
     const wharfStatusValue = wharfStatus === 'Yes';
     const constructionSiteValue = constructionSite === 'Yes';
 
-    // Fetch filtered drivers based on dropdown selections
-    fetch(`/api/get_filtered_drivers?wharfStatus=${wharfStatusValue}&constructionSite=${constructionSiteValue}`)
-        .then(response => response.json())
-        .then(data => {
-            // Populate the driver dropdown with eligible drivers
-            data.forEach(driver => {
-                const listItem = document.createElement('li');
-                listItem.onclick = () => selectDriverOption(listItem, driver.name, driver.id);
-                listItem.textContent = driver.name;
-                driverList.appendChild(listItem);
+    // Clear any existing timeout to prevent sending requests too frequently
+    clearTimeout(timeoutId);
+
+    // Set a new timeout to send the request after 5 seconds
+    timeoutId = setTimeout(() => {
+        fetch(`/api/get_filtered_drivers?wharfStatus=${wharfStatusValue}&constructionSite=${constructionSiteValue}`)
+            .then(response => response.json())
+            .then(data => {
+                // Clear previous driver list and add new items
+                driverList.innerHTML = '';
+                
+                // Populate the driver dropdown with eligible drivers
+                data.forEach(driver => {
+                    const listItem = document.createElement('li');
+                    listItem.onclick = () => selectDriverOption(listItem, driver.name, driver.id);
+                    listItem.textContent = driver.name;
+                    driverList.appendChild(listItem);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching filtered drivers:', error);
             });
-        })
-        .catch(error => {
-            console.error('Error fetching filtered drivers:', error);
-        });
+    }, 2000);  // 5 seconds delay
 }
 
         
@@ -1331,7 +1341,7 @@ function checkDropdowns() {
             const jobCountCell = row.cells[3].innerText;
             const trailerTypeCell = row.cells[2].innerText;
             const dateCell = row.cells[0].innerText;
-        
+            console.log("dateCell",dateCell)
             previousValues[jobId] = {
                 jobName: jobNameCell,
                 jobCount: jobCountCell,
@@ -1350,7 +1360,10 @@ function checkDropdowns() {
                 </select>
             `;
             row.cells[0].innerHTML = `<input type="date" class="form-control" value="${new Date(dateCell).toISOString().split('T')[0]}">`;
-        
+           
+           
+           
+            console.log(" row.cells[0].innerHTML", row.cells[0].innerHTML)
             button.textContent = "Save";
             button.setAttribute("onclick", `saveJob(this, ${jobId})`);
         
@@ -1371,11 +1384,17 @@ function checkDropdowns() {
             const trailerTypeCell = row.cells[2].querySelector('select').value;
             const dateCell = row.cells[0].querySelector('input').value;
         
+            // Format the date back to "Nov. 13, 2024"
+            const dateObj = new Date(dateCell);
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            let formattedDate = new Intl.DateTimeFormat('en-US', options).format(dateObj);
+            formattedDate = formattedDate.replace(/(\w{3})(\s)/, '$1. '); // Add period after month abbreviation
+        
             fetch(`/jobs/edit/${jobId}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': getCookie('csrftoken')  // Add CSRF token if you're using Django
+                    'X-CSRFToken': getCookie('csrftoken') // Add CSRF token if you're using Django
                 },
                 body: new URLSearchParams({
                     'job_name': jobNameCell,
@@ -1387,24 +1406,31 @@ function checkDropdowns() {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
+                    // Update row cells with new values
                     row.cells[1].textContent = jobNameCell;
                     row.cells[3].textContent = jobCountCell;
                     row.cells[2].textContent = trailerTypeCell;
-                    row.cells[0].textContent = dateCell;
+                    row.cells[0].textContent = formattedDate; // Use formatted date
         
+                    // Reset buttons
                     button.textContent = "Edit";
                     button.setAttribute("onclick", `editJob(this, ${jobId})`);
+        
                     const cancelButton = row.querySelector('.btn-secondary');
                     cancelButton.remove();
+        
                     const deleteButton = row.querySelector('.delete-btn');
                     deleteButton.style.display = "";
                 } else {
                     alert(data.message);
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving the job.');
             });
         }
-
-        
+                
         function cancelEdit(button, jobId) {
             const row = button.closest('tr');
             const previous = previousValues[jobId];
