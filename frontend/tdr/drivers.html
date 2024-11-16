@@ -128,12 +128,7 @@
                 return;
             }
 
-            if (!onLeave && !hasMSIC && !hasWhiteCard) {
-                $('#errorMessage').text('Please select at least one option (On Leave, Has MSIC, or Has White Card).');
-                return;
-            } else {
-                $('#errorMessage').text('');
-            }
+          
 
             $.ajax({
                 url: '/add_driver/',
@@ -193,12 +188,7 @@
                 return;
             }
 
-            if (!onLeave && !hasMSIC && !hasWhiteCard) {
-                $('#errorMessage').text('Please select at least one option (On Leave, Has MSIC, or Has White Card).');
-                return;
-            } else {
-                $('#errorMessage').text('');
-            }
+         
 
             $.ajax({
                 url: `/edit_driver/${id}/`,

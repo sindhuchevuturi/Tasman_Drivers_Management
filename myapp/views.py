@@ -416,7 +416,7 @@ def get_filtered_drivers(request):
 
         # Print for debugging
         print(f"Wharf Status11: {wharfStatus}, Construction Site11: {constructionSite}")
-        print( Driver.objects.filter(has_msic=True, has_white_card=True))
+        # print( Driver.objects.filter(has_msic=True, has_white_card=True))
 
         if wharfStatus and constructionSite:
             # Both are True, fetch drivers with both `has_msic=True` and `has_white_card=True`
@@ -434,7 +434,7 @@ def get_filtered_drivers(request):
         else:
             print("hello3")
             # Both are False, fetch all drivers except those with both `has_msic=False` and `has_white_card=False`
-            filtered_drivers = Driver.objects.exclude(has_msic=False, has_white_card=False)
+            filtered_drivers = Driver.objects.all()
             print("filtered_drivers",filtered_drivers)
 
         # Exclude drivers who are on leave in all cases
