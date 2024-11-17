@@ -403,7 +403,6 @@ from .models import Driver  # Make sure to import your Driver model
 
     
 
-
 def get_filtered_drivers(request):
     if request.method == "GET":
         # Retrieve query parameters
@@ -414,40 +413,36 @@ def get_filtered_drivers(request):
         wharfStatus = wharfStatus.lower() == 'true' if wharfStatus is not None else False
         constructionSite = constructionSite.lower() == 'true' if constructionSite is not None else False
 
-        # Print for debugging
-        print(f"Wharf Status11: {wharfStatus}, Construction Site11: {constructionSite}")
-        # print( Driver.objects.filter(has_msic=True, has_white_card=True))
+        # Debugging print statements
+        print(f"Wharf Status: {wharfStatus}, Construction Site: {constructionSite}")
 
         if wharfStatus and constructionSite:
             # Both are True, fetch drivers with both `has_msic=True` and `has_white_card=True`
-            print("hello1")
+            print("Condition: YES YES")
             filtered_drivers = Driver.objects.filter(has_msic=True, has_white_card=True)
-            print("filtered_drivers",filtered_drivers)
         elif wharfStatus or constructionSite:
             # Either one is True, fetch drivers matching either condition
-            print("hello2")
+            # Exclude drivers with both `has_msic=False` and `has_white_card=False` (like Nitin)
+            print("Condition: YES NO or NO YES")
             filtered_drivers = Driver.objects.filter(
                 Q(has_msic=wharfStatus) | Q(has_white_card=constructionSite)
-            )
-            print("filtered_drivers",filtered_drivers)
-
+            ).exclude(has_msic=False, has_white_card=False)
         else:
-            print("hello3")
-            # Both are False, fetch all drivers except those with both `has_msic=False` and `has_white_card=False`
+            # Both are False, fetch all drivers
+            print("Condition: NO NO")
             filtered_drivers = Driver.objects.all()
-            print("filtered_drivers",filtered_drivers)
 
         # Exclude drivers who are on leave in all cases
         filtered_drivers = filtered_drivers.exclude(on_leave=True)
 
-        # Print for debugging
-        print("Filtered Drivers:", filtered_drivers)
+        # Debugging print statement
+        print("Filtered Drivers QuerySet:", filtered_drivers)
 
         # Prepare driver data for the response
         driver_data = [{'id': driver.id, 'name': driver.name} for driver in filtered_drivers]
 
         # Return the response
-        return JsonResponse( driver_data ,safe=False)
+        return JsonResponse(driver_data, safe=False)
 
 import csv
 from django.http import HttpResponse
