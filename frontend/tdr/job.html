@@ -166,7 +166,29 @@ table {
 .modal-actions button:hover {
     background-color: #0056b3;
 }
+.scrollable-table {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
 
+    /* Allow columns to expand dynamically based on content */
+    #rosterTable {
+        width: 100%; /* Use the full width of the container */
+        table-layout: auto; /* Adjust column width dynamically */
+    }
+
+    /* Set a minimum width for specific columns */
+    #rosterTable th, #rosterTable td {
+        min-width: 120px; /* Adjust to fit your content */
+        text-align: center; /* Optional: Align content to center */
+    }
+
+    /* Optional: Adjust the Trailer Rego columns individually */
+    #rosterTable th:nth-child(3), #rosterTable td:nth-child(3), /* Trailer Rego */
+    #rosterTable th:nth-child(4), #rosterTable td:nth-child(4), /* Trailer Rego 2 */
+    #rosterTable th:nth-child(5), #rosterTable td:nth-child(5) { /* Trailer Rego 3 */
+        min-width: 150px; /* Wider for better visibility */
+    }
     </style>
     
 </head>
