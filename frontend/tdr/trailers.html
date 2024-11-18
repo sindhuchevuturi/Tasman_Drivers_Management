@@ -93,18 +93,20 @@
         });
 
         function addTrailerRego() {
-            const newRego = $('#newTrailerRego').val();
+            const newRego = $('#newTrailerRego').val().trim();
+            if (newRego.length > 7) {
+                alert('Registration number cannot exceed 7 characters.');
+                return;
+            }
             if (newRego) {
                 $.post('/add_trailer/', { rego_number: newRego }, function(response) {
-                    location.reload(); // Reload the page
-
+                    location.reload();
                     if (response.status === 'success') {
                         const newRow = `<tr><td class="text-center">${response.rego_number}</td></tr>`;
                         $('#trailersTable tbody').append(newRow);
-                        $('#newTrailerRego').val(''); // Clear input field
-
+                        $('#newTrailerRego').val('');
                     } else if (response.status === 'exists') {
-                        alert(response.message); 
+                        alert(response.message);
                     } else {
                         alert('Error: ' + response.message);
                     }
@@ -115,6 +117,7 @@
                 alert('Please enter a trailer registration number.');
             }
         }
+
     </script>
 
 </body>
