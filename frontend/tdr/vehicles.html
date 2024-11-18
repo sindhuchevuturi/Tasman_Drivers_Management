@@ -85,27 +85,39 @@
 
     function addRego() {
         const newRego = $('#newRego').val().trim();
-        if (newRego !== "") {
-            $.post('/add_vehicle/', { rego_number: newRego }, function(response) {
-                console.log(response); // Debugging line
-                if (response.status === 'success') {
-                    // Add new row to the table only if a new vehicle is successfully created
-                    const newRow = `<tr><td class="text-center">${response.rego_number}</td></tr>`; // Centered new row data
-                    $('#vehiclesTable tbody').append(newRow);
-                    $('#newRego').val(''); // Clear input field
-                } else if (response.status === 'exists') {
-                    // Show alert for existing vehicle without modifying the table
-                    alert(response.message); 
-                } else {
-                    // Handle other error messages
-                    alert('Error: ' + (response.message || 'Unknown error occurred.')); // Fallback for undefined message
-                }
-            }).fail(function(xhr) {
-                alert('Error: ' + xhr.responseText); // Handle AJAX request failure
-            });
-        } else {
-            alert('Please enter a vehicle registration number.'); // Input validation
+        if (newRego === "") {
+            alert('Please enter a vehicle registration number.');
+            return;
         }
+        if (newRego.length > 7) {
+            alert('Registration number cannot exceed 7 characters.');
+            return;
+        }
+
+        const existingRegos = $('#vehiclesTable tbody tr td').map(function() {
+            return $(this).text().trim();
+        }).get();
+
+        if (existingRegos.includes(newRego)) {
+            alert('This registration number already exists in the table.');
+            return;
+        }
+
+        $.post('/add_vehicle/', { rego_number: newRego }, function(response) {
+            console.log(response); 
+            if (response.status === 'success') {
+                const newRow = `<tr><td class="text-center">${response.rego_number}</td></tr>`;
+                $('#vehiclesTable tbody').append(newRow);
+                $('#newRego').val('');
+            } else if (response.status === 'exists') {
+                alert(response.message);
+            } else {
+                alert('Error: ' + (response.message || 'Unknown error occurred.'));
+            }
+        }).fail(function(xhr, status, error) {
+            console.error(`Request failed with status: ${status}, error: ${error}`);
+            alert('Failed to add vehicle. Please check your internet connection or try again later.');
+        });
     }
 </script>
 
