@@ -38,14 +38,16 @@
 </head>
 <body>
     <div class="header">
-        <img src="https://imgur.com/q4k13UQ.jpeg" alt="Header Image">
+        <a href="{% url 'jobs_list' %}">
+            <img src="https://imgur.com/q4k13UQ.jpeg" alt="Header Image">
+        </a>
     </div>
     
 <div class="navbar">
     <a href="{% url 'trailers_list' %}">Trailers List</a>
     <a href="{% url 'add_vehicle' %}">Add Vehicle</a>
     <a href="{% url 'drivers_list' %}">Drivers List</a>
-    <a href="{% url 'jobs_list' %}">Jobs List</a>
+    <a href="{% url 'jobs_list' %}">Schedule roster</a>
 </div>
 
 <div class="content">
