@@ -1389,18 +1389,19 @@ function checkDropdowns() {
 
         function editJob(button, jobId) {
             const row = button.closest('tr');
-            const jobNameCell = row.cells[1].innerText;
-            const jobCountCell = row.cells[3].innerText;
-            const trailerTypeCell = row.cells[2].innerText;
-            const dateCell = row.cells[0].innerText;
-            console.log("dateCell",dateCell)
+            const jobNameCell = row.cells[1].innerText.trim();
+            const jobCountCell = row.cells[3].innerText.trim();
+            const trailerTypeCell = row.cells[2].innerText.trim();
+            const dateCell = row.cells[0].innerText.trim(); // Ensure there are no extra spaces
+
             previousValues[jobId] = {
                 jobName: jobNameCell,
                 jobCount: jobCountCell,
                 trailerType: trailerTypeCell,
                 jobDate: dateCell
             };
-        
+
+            // Use the dateCell value directly if it's in 'YYYY-MM-DD' format
             row.cells[1].innerHTML = `<input type="text" class="form-control" value="${jobNameCell}">`;
             row.cells[3].innerHTML = `<input type="text" class="form-control rowCount" value="${jobCountCell}" oninput="validateJobCount(this)">`;
             row.cells[2].innerHTML = `
@@ -1411,42 +1412,38 @@ function checkDropdowns() {
                     <option value="BDBL" ${trailerTypeCell === 'BDBL' ? 'selected' : ''}>BDBL</option>
                 </select>
             `;
-            row.cells[0].innerHTML = `<input type="date" class="form-control" value="${new Date(dateCell).toISOString().split('T')[0]}">`;
-           
-           
-           
-            console.log(" row.cells[0].innerHTML", row.cells[0].innerHTML)
+            row.cells[0].innerHTML = `<input type="date" class="form-control" value="${dateCell}">`;
+
             button.textContent = "Save";
             button.setAttribute("onclick", `saveJob(this, ${jobId})`);
-        
+
             const cancelButton = document.createElement('button');
             cancelButton.textContent = "Cancel";
             cancelButton.classList.add('btn', 'btn-secondary', 'ml-2');
             cancelButton.setAttribute("onclick", `cancelEdit(this, ${jobId})`);
             button.after(cancelButton);
-        
+
             const deleteButton = row.querySelector('.delete-btn');
             deleteButton.style.display = "none";
         }
-        
+
         function saveJob(button, jobId) {
             const row = button.closest('tr');
             const jobNameCell = row.cells[1].querySelector('input').value;
             const jobCountCell = row.cells[3].querySelector('input').value;
             const trailerTypeCell = row.cells[2].querySelector('select').value;
             const dateCell = row.cells[0].querySelector('input').value;
-        
-            // Format the date back to "Nov. 13, 2024"
-            const dateObj = new Date(dateCell);
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            let formattedDate = new Intl.DateTimeFormat('en-US', options).format(dateObj);
-            formattedDate = formattedDate.replace(/(\w{3})(\s)/, '$1. '); // Add period after month abbreviation
-        
+
+            // Manually parse the date without time zone conversion
+            const [year, month, day] = dateCell.split('-');
+            const monthNames = ["Jan.", "Feb.", "Mar.", "Apr.", "May.", "Jun.", "Jul.", "Aug.", "Sep.", "Oct.", "Nov.", "Dec."];
+            const formattedDate = `${monthNames[parseInt(month, 10) - 1]} ${parseInt(day, 10)}, ${year}`;
+
             fetch(`/jobs/edit/${jobId}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': getCookie('csrftoken') // Add CSRF token if you're using Django
+                    'X-CSRFToken': getCookie('csrftoken') // Adjust as needed
                 },
                 body: new URLSearchParams({
                     'job_name': jobNameCell,
@@ -1462,15 +1459,15 @@ function checkDropdowns() {
                     row.cells[1].textContent = jobNameCell;
                     row.cells[3].textContent = jobCountCell;
                     row.cells[2].textContent = trailerTypeCell;
-                    row.cells[0].textContent = formattedDate; // Use formatted date
-        
+                    row.cells[0].textContent = formattedDate; // Use formatted date without time zone issues
+
                     // Reset buttons
                     button.textContent = "Edit";
                     button.setAttribute("onclick", `editJob(this, ${jobId})`);
-        
+
                     const cancelButton = row.querySelector('.btn-secondary');
                     cancelButton.remove();
-        
+
                     const deleteButton = row.querySelector('.delete-btn');
                     deleteButton.style.display = "";
                 } else {
@@ -1482,6 +1479,7 @@ function checkDropdowns() {
                 alert('An error occurred while saving the job.');
             });
         }
+
                 
         function cancelEdit(button, jobId) {
             const row = button.closest('tr');
