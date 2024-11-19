@@ -229,121 +229,106 @@ def edit_job(request, id):
 def add_roster(request):
 
 
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            print("Received Data:", data)
 
+            try:
+                # Parse the date from the incoming data
+                job_date = datetime.strptime(data['date'], '%b. %d, %Y').date()
+                print("Parsed job_date:", job_date)
 
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        print("aa--ffffffff", data)
-        try:
-            # Parse the date from the incoming data
-            job_date = datetime.strptime(data['date'], '%b. %d, %Y').date()
-            print("job_date",job_date)
-            # Validate and parse start_time
-            start_time_str = data.get('startTime')
-            end_time_str = data.get('finishTime')
+                # Validate and parse start_time
+                start_time_str = data.get('startTime')
+                finish_time_str = data.get('finishTime')
 
-            if not start_time_str or not end_time_str:
-                return JsonResponse({'status': 'error', 'message': 'startTime and finishTime cannot be empty.'})
+                if not start_time_str:
+                    return JsonResponse({'status': 'error', 'message': 'startTime cannot be empty.'})
 
-            start_time = datetime.strptime(start_time_str, '%H:%M').time()
-            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+                start_time = datetime.strptime(start_time_str, '%H:%M').time()
+                finish_time = None  # Default to None if not provided
 
-            # Create a new Roster instance
-            print("aaa-----------")
-            print("data['wharfStatus']",data['wharfStatus'])
-            print("data['constructionSite']",data['constructionSite'])
+                if finish_time_str:
+                    try:
+                        finish_time = datetime.strptime(finish_time_str, '%H:%M').time()
+                    except ValueError:
+                        return JsonResponse({'status': 'error', 'message': 'Invalid format for finishTime. Use HH:MM.'})
 
-            vehicles = Vehicle.objects.get(id=data['vehicleRegos'])
-            trailer1 = Trailer.objects.get(id=data['trailerRegos'][0])
-            # print("vehicles.name",vehicles.rego_number)
-            # print("trailer1.rego_number",trailer1.rego_number)
-            # print("Trailer.objects.get(id=data['trailerRegos'][1])",Trailer.objects.get(id=data['trailerRegos'][1]))
-            print("trailer1",trailer1.rego_number)
-            print("vehicles",vehicles.rego_number)
+                # Retrieve related objects
+                vehicles = Vehicle.objects.get(id=data['vehicleRegos'])
+                trailer1 = Trailer.objects.get(id=data['trailerRegos'][0]) if data['trailerRegos'][0] else None
+                trailer2 = Trailer.objects.get(id=data['trailerRegos'][1]) if len(data['trailerRegos']) > 1 and data['trailerRegos'][1] else None
+                trailer3 = Trailer.objects.get(id=data['trailerRegos'][2]) if len(data['trailerRegos']) > 2 and data['trailerRegos'][2] else None
+                driver = Driver.objects.get(id=data['driverName'])
 
-            if data['trailerRegos'][1] == '':
-                trailer2 = None
-                print("trailer2",trailer2)
-            else:
-                print("hello1")
-                trailer2=Trailer.objects.get(id=data['trailerRegos'][1])
+                print("Vehicle:", vehicles.rego_number)
+                print("Trailer1:", trailer1.rego_number if trailer1 else "None")
+                print("Trailer2:", trailer2.rego_number if trailer2 else "None")
+                print("Trailer3:", trailer3.rego_number if trailer3 else "None")
+                print("Driver:", driver.name)
 
-            if data['trailerRegos'][2] == '':
-                trailer3 = None
-                # print("trailer2",trailer3.rego_number)    
-            else:
-                print("hello1")
-                trailer3=Trailer.objects.get(id=data['trailerRegos'][2])
-            
-            
-            # print("trailer2",trailer2.rego_number)
-            # print("trailer3",trailer3.rego_number)
+                # Create a new Roster instance
+                roster = Roster.objects.create(
+                    job_date=job_date,
+                    vehicle=vehicles,
+                    trailer1=trailer1,
+                    trailer2=trailer2,
+                    trailer3=trailer3,
+                    trailer_type=data['trailerType'],
+                    start_time=start_time,
+                    end_time=finish_time,
+                    client_name=data['clientName'],
+                    wharf_status=data['wharfStatus'],
+                    construction_site=data['constructionSite'],
+                    driver=driver,
+                    notes=data['notes']
+                )
+                roster.save()
 
-            driver = Driver.objects.get(id=data['driverName'])
-            print("driver",driver.name)
-            roster = Roster.objects.create(
-                job_date=job_date,
-                vehicle=vehicles,
-                trailer1=trailer1,
-                trailer2=trailer2,
-                trailer3=trailer3,
-                trailer_type=data['trailerType'],
-                start_time=start_time,
-                end_time=end_time,
-                client_name=data['clientName'],
-                wharf_status=data['wharfStatus'],
-                construction_site=data['constructionSite'],
-                driver=driver,
-                notes=data['notes']
-            )
-            roster.save()
-            client = Client(account_sid, auth_token)
-            print(settings.YOUR_TWILIO_PHONE_NUMBER,"settings.AUTH_TOKEN",settings.AUTH_TOKEN,"settings.ACCOUNT_SID",settings.ACCOUNT_SID)
+                # Send SMS notification
+                client = Client(settings.ACCOUNT_SID, settings.AUTH_TOKEN)
+                print("Twilio Config:", settings.YOUR_TWILIO_PHONE_NUMBER)
 
-        # Prepare the SMS body with relevant details
-            message_body = (
-                f"Roster added!\n"
-                f"Date: {job_date}\n"
-                f"Vehicle Regos: {vehicles.rego_number}\n"
-                f"Trailer Type 1: {trailer1.rego_number}\n"
-            )
+                # Prepare the SMS body
+                message_body = (
+                    f"Roster added!\n"
+                    f"Date: {job_date}\n"
+                    f"Vehicle Regos: {vehicles.rego_number}\n"
+                    f"Trailer 1: {trailer1.rego_number if trailer1 else 'None'}\n"
+                    f"Trailer 2: {trailer2.rego_number if trailer2 else 'None'}\n"
+                    f"Trailer 3: {trailer3.rego_number if trailer3 else 'None'}\n"
+                    f"Trailer Type: {data['trailerType']}\n"
+                    f"Start Time: {start_time}\n"
+                    f"End Time: {finish_time if finish_time else 'N/A'}\n"
+                    f"Wharf Status: {data['wharfStatus']}\n"
+                    f"Construction Site: {data['constructionSite']}\n"
+                    f"Client: {data['clientName']}\n"
+                    f"Driver: {driver.name}\n"
+                    f"Notes: {data['notes']}\n"
+                )
 
-            if trailer2 is not None:
-                message_body += f"Trailer Type 2: {trailer2.rego_number}\n"
-            else:
-                message_body += "Trailer Type 2: \n"
+                print("Driver Phone Number:", driver.phone_number)
+                message = client.messages.create(
+                    body=message_body,
+                    from_=twilio_phone_number,
+                    to=driver.phone_number
+                )
+                print("Message Sent:", message.sid)
 
-            if trailer3 is not None:
-                message_body += f"Trailer Type 3: {trailer3.rego_number}\n"
-            else:
-                message_body += "Trailer Type 3: \n"
+                return JsonResponse({'status': 'success', 'message': 'You received an SMS on your phone.'})
 
-            message_body += (
-                f"Trailer Type: {data['trailerType']}\n"
-                f"Start Time: {start_time}\n"
-                f"End Time: {end_time}\n"
-                f"Wharf Status: {data['wharfStatus']}\n"
-                f"Construction Site: {data['constructionSite']}\n"
-                f"Client: {data['clientName']}\n"
-                f"Driver: {driver.name}\n"
-                f"Notes: {data['notes']}\n"
-            )
-            print("driver.phone_number",driver.phone_number)
-            # Send the SMS
-            message = client.messages.create(
-                body=message_body,
-                from_=twilio_phone_number,
-                to=driver.phone_number
-            )
-            print("message",message)
-            return JsonResponse({'status': 'success', 'message': 'You got a sms on the phone'})
+            except Vehicle.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Vehicle not found.'})
+            except Trailer.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'One of the trailers was not found.'})
+            except Driver.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Driver not found.'})
+            except Exception as e:
+                print("Error:", e)
+                return JsonResponse({'status': 'error', 'message': str(e)})
 
-            # return JsonResponse({'status': 'success', 'message': 'Roster added successfully!'})
-        except ValueError as ve:
-            return JsonResponse({'status': 'error', 'message': str(ve)})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
 # views.py
 from django.http import JsonResponse
 from .models import Driver
