@@ -12,6 +12,11 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Include jQuery (required by Select2) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+ <!-- DataTables CSS -->
+ <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+
+ <!-- jQuery UI CSS -->
+ <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
 <!-- Include Select2 CSS and JavaScript -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
@@ -217,7 +222,33 @@ table {
     background-color: #b3ffb3;
     color: black;
 }
+.header-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 
+    /* Header text styling */
+    .header-text {
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    /* General filter styling */
+    .header-filter {
+        width: 100%;
+        max-width: 150px;
+        padding: 5px;
+        box-sizing: border-box;
+    }
+
+    /* Specific styling for date filter */
+    .date-filter {
+        width: 100%;
+        max-width: 150px;
+        padding: 5px;
+        box-sizing: border-box;
+    }
 
     </style>
     
@@ -317,7 +348,7 @@ table {
                  <th>Trailer Rego 3</th>
                  <th>Trailer Type</th>
                  <th>Start Time</th>
-                 <th>Finish Time</th>
+                 <th>Est. Finish Time</th>
                  <th>Client Name</th>
                  <th>Wharf Status</th>
                  <th>Construction Site</th>
@@ -330,7 +361,7 @@ table {
              <!-- Dynamically added roster rows will appear here -->
                 {% for roster in rosters %}
                 <tr data-id="{{ roster.id }}">
-                    <td>{{ roster.job_date }}</td>
+                    <td>{{ roster.job_date|date:"Y-m-d"}}</td>
                     <td>{{ roster.vehicle }}</td>
                     <td>{{ roster.trailer1 }}</td>
                     <td>{{ roster.trailer2 }}</td>
@@ -357,6 +388,11 @@ table {
 </div>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <!-- Bootstrap JS and dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
@@ -366,7 +402,18 @@ table {
 
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
-    
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+
+    <!-- jQuery UI JS -->
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+
+    <!-- Popper.js and Bootstrap JS (if needed) -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
    
     <script>
 // Toggle dropdown visibility
@@ -407,47 +454,95 @@ $(document).ready(function() {
         paging: false,
         info: false,
         initComplete: function () {
-            // For each column, add a select filter
+            // Iterate over each column
             this.api().columns().every(function () {
                 var column = this;
                 var columnIndex = column.index();
 
-                // Get header cell
+                // Get the header cell
                 var header = $(column.header());
 
                 // Store the header text
                 var headerText = header.text();
 
-                // Clear the header and add a container
+                // Clear the header and add a container for text and filter
                 header.empty();
                 var container = $('<div class="header-container"></div>').appendTo(header);
 
                 // Add header text
                 $('<span class="header-text">' + headerText + '</span>').appendTo(container);
 
-                // Skip columns you don't want to filter (e.g., Notes)
-                // if (columnIndex === 12) return;
+                // Check if it's the Date column (first column, index 0)
+                if (columnIndex === 0) {
+                    // Create input elements for start and end dates
+                    var startDateInput = $('<input type="text" class="header-filter date-filter" placeholder="Start date" />')
+                        .appendTo(container)
+                        .on('change', function () {
+                            table.draw();
+                        });
+                    var endDateInput = $('<input type="text" class="header-filter date-filter" placeholder="End date" />')
+                        .appendTo(container)
+                        .on('change', function () {
+                            table.draw();
+                        });
 
-                // Create select element
-                var select = $('<select class="header-filter"><option value="">All</option></select>')
-                    .appendTo(container)
-                    .on('change', function () {
-                        var val = $.fn.dataTable.util.escapeRegex(
-                            $(this).val()
-                        );
-
-                        column
-                            .search(val ? '^' + val + '$' : '', true, false)
-                            .draw();
+                    // Initialize date pickers
+                    startDateInput.datepicker({
+                        dateFormat: 'yy-mm-dd',
+                        changeMonth: true,
+                        changeYear: true,
+                        showButtonPanel: true
+                    });
+                    endDateInput.datepicker({
+                        dateFormat: 'yy-mm-dd',
+                        changeMonth: true,
+                        changeYear: true,
+                        showButtonPanel: true
                     });
 
-                // Populate select options
-                column.data().unique().sort().each(function (d, j) {
-                    d = $('<div>').html(d).text();
-                    if (d) { // Check if the value is not empty
-                        select.append('<option value="' + d + '">' + d + '</option>');
-                    }
-                });
+                    // Custom filtering function for date range
+                    $.fn.dataTable.ext.search.push(
+                        function(settings, data, dataIndex) {
+                            var min = startDateInput.val();
+                            var max = endDateInput.val();
+                            var date = data[0]; // Use data for the date column
+
+                            if (min) {
+                                min = new Date(min).getTime();
+                            }
+                            if (max) {
+                                max = new Date(max).getTime();
+                            }
+                            var rowDate = new Date(date).getTime();
+
+                            if (
+                                (isNaN(min) || rowDate >= min) &&
+                                (isNaN(max) || rowDate <= max)
+                            ) {
+                                return true;
+                            }
+                            return false;
+                        }
+                    );
+                } else {
+                    // For other columns, use select dropdown
+                    var select = $('<select class="header-filter"><option value="">All</option></select>')
+                        .appendTo(container)
+                        .on('change', function () {
+                            var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                            column
+                                .search(val ? '^' + val + '$' : '', true, false)
+                                .draw();
+                        });
+
+                    // Populate select options with unique sorted data
+                    column.data().unique().sort().each(function (d, j) {
+                        d = $('<div>').html(d).text(); // Strip any HTML
+                        if (d) { // Only add non-empty options
+                            select.append('<option value="' + d + '">' + d + '</option>');
+                        }
+                    });
+                }
             });
         }
     });
