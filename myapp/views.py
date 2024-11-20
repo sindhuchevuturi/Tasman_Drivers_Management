@@ -52,15 +52,17 @@ def add_vehicle(request):
     if request.method == 'POST':
         rego_number = request.POST.get('rego_number', '').strip()
         if rego_number:
-            vehicle, created = Vehicle.objects.get_or_create(rego_number=rego_number)
-            print("vehicle:", vehicle, "created:", created)
-            if created:
-                return JsonResponse({'status': 'success', 'rego_number': vehicle.rego_number})
-            else:
+            if Vehicle.objects.filter(rego_number=rego_number).exists():
                 return JsonResponse({'status': 'exists', 'message': 'Vehicle already exists.'})
+            else:
+                vehicle = Vehicle(rego_number=rego_number)
+                vehicle.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'rego_number': vehicle.rego_number,
+                    'vehicle_id': vehicle.id
+                })
         return JsonResponse({'status': 'error', 'message': 'Invalid vehicle registration number.'})
-    
-    # Ensure this part of the code is unreachable unless an incorrect method is used
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
 def drivers_list(request):
@@ -487,3 +489,15 @@ def update_trailer_in_service(request):
             return JsonResponse({'status': 'error', 'message': 'Trailer not found'}, status=404)
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+    
+def update_vehicle_in_service(request):
+    vehicle_id = request.POST.get('vehicle_id')
+    in_service = request.POST.get('in_service') == 'true'
+
+    try:
+        vehicle = Vehicle.objects.get(id=vehicle_id)
+        vehicle.in_service = in_service
+        vehicle.save()
+        return JsonResponse({'status': 'success'})
+    except Vehicle.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Vehicle not found'}, status=404)

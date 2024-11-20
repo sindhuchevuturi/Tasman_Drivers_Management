@@ -38,6 +38,7 @@
         <thead class="thead-light">
             <tr>
                 <th class="text-center">Vehicle Rego</th> <!-- Centered header title -->
+                <th class="text-center">In Service</th>
             </tr>
         </thead>
     </table>
@@ -47,6 +48,9 @@
                 {% for vehicle in vehicle %} <!-- Changed from 'trailer' to 'vehicle' -->
                 <tr>
                     <td class="text-center">{{ vehicle.rego_number }}</td> <!-- Centered table data -->
+                    <td class="text-center">
+                        <input type="checkbox" class="vehicle-in-service-checkbox" data-vehicle-id="{{ vehicle.id }}" {% if vehicle.in_service %}checked{% endif %}>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -84,41 +88,64 @@
     });
 
     function addRego() {
-        const newRego = $('#newRego').val().trim();
-        if (newRego === "") {
-            alert('Please enter a vehicle registration number.');
-            return;
-        }
-        if (newRego.length > 7) {
-            alert('Registration number cannot exceed 7 characters.');
-            return;
-        }
+    const newRego = $('#newRego').val().trim();
+    if (newRego === "") {
+        alert('Please enter a vehicle registration number.');
+        return;
+    }
+    if (newRego.length > 7) {
+        alert('Registration number cannot exceed 7 characters.');
+        return;
+    }
 
-        const existingRegos = $('#vehiclesTable tbody tr td').map(function() {
-            return $(this).text().trim();
-        }).get();
-
-        if (existingRegos.includes(newRego)) {
-            alert('This registration number already exists in the table.');
-            return;
+    $.post('/add_vehicle/', { rego_number: newRego }, function(response) {
+        console.log(response); 
+        if (response.status === 'success') {
+            const newRow = `
+                <tr>
+                    <td class="text-center">${response.rego_number}</td>
+                    <td class="text-center">
+                        <input type="checkbox" class="vehicle-in-service-checkbox" data-vehicle-id="${response.vehicle_id}">
+                    </td>
+                </tr>`;
+            $('#vehiclesTable tbody').append(newRow);
+            $('#newRego').val('');
+            // Attach event handler to the new checkbox
+            $('.vehicle-in-service-checkbox').last().change(handleVehicleInServiceChange);
+        } else if (response.status === 'exists') {
+            alert(response.message);
+        } else {
+            alert('Error: ' + (response.message || 'Unknown error occurred.'));
         }
+    }).fail(function(xhr, status, error) {
+        console.error(`Request failed with status: ${status}, error: ${error}`);
+        alert('Failed to add vehicle. Please check your internet connection or try again later.');
+    });
+}
 
-        $.post('/add_vehicle/', { rego_number: newRego }, function(response) {
-            console.log(response); 
-            if (response.status === 'success') {
-                const newRow = `<tr><td class="text-center">${response.rego_number}</td></tr>`;
-                $('#vehiclesTable tbody').append(newRow);
-                $('#newRego').val('');
-            } else if (response.status === 'exists') {
-                alert(response.message);
-            } else {
-                alert('Error: ' + (response.message || 'Unknown error occurred.'));
+function handleVehicleInServiceChange() {
+        const vehicleId = $(this).data('vehicle-id');
+        const inService = $(this).is(':checked');
+        $.ajax({
+            url: '/update_vehicle_in_service/',
+            method: 'POST',
+            data: {
+                'vehicle_id': vehicleId,
+                'in_service': inService,
+            },
+            success: function(response) {
+                // Optionally handle success response
+            },
+            error: function(xhr) {
+                alert('Error updating vehicle: ' + xhr.responseText);
             }
-        }).fail(function(xhr, status, error) {
-            console.error(`Request failed with status: ${status}, error: ${error}`);
-            alert('Failed to add vehicle. Please check your internet connection or try again later.');
         });
     }
+
+    $(document).ready(function() {
+        // Attach the event handler to existing checkboxes
+        $('.vehicle-in-service-checkbox').change(handleVehicleInServiceChange);
+    });
 </script>
 
 </body>

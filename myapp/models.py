@@ -2,6 +2,7 @@ from django.db import models
 
 class Vehicle(models.Model):
     rego_number = models.CharField(max_length=20, null=True, blank=True, default='default_value')  # Vehicle Registration
+    in_service = models.BooleanField(default=False)
 
     def __str__(self):
         return self.rego_number
