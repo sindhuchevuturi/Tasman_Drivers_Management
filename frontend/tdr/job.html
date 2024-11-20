@@ -836,90 +836,90 @@ document.addEventListener('click', function(event) {
 
 
 
-
 function saveindatabase(button) {
-        // Replace static text with inputs or selects for editing
-        const row = button.closest('tr');
-
-// Check if the row exists
-if (!row) {
-    console.error("Row not found");
-    return;
-}
-console.log([row.cells[2].querySelector('select')?.value || ""])
-// Extract data from the row for saving
-// const trailerId = row.cells[2].querySelector('input.dropdown-toggle').value || "";
-// const trailerId = row.cells[2].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
-    const vehicleRegos = row.cells[1].querySelector('input.dropdown-toggle').getAttribute('data-vehicle-id') || "";
-    const trailer1Rego = row.cells[2].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
-    const trailer2Rego = row.cells[3].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
-    const trailer3Rego = row.cells[4].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
-    const driverName = row.cells[11].querySelector('input.dropdown-toggle').getAttribute('data-driver-id') || "";
-
-    console.log(trailer1Rego,trailer2Rego)
-
-    const rosterData = {
-        date: row.cells[0].innerText,
-        vehicleRegos:vehicleRegos,
-        trailerRegos: [trailer1Rego, trailer2Rego, trailer3Rego],
-        trailerType: row.cells[5].innerText,
-        startTime: row.cells[6].querySelector('input')?.value || "",
-        finishTime: row.cells[7].querySelector('input')?.value || "",
-        clientName: row.cells[8].innerText,
-        wharfStatus: row.cells[9].querySelector('select')?.value || "",
-        constructionSite: row.cells[10].querySelector('select')?.value || "",
-        driverName: driverName,
-        notes: row.cells[12].querySelector('input')?.value || ""
-    };
-
-
-console.log(rosterData);
-
-// Send the data to the server
-fetch('/roster/add/', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCookie('csrftoken') // CSRF token
-    },
-    body: JSON.stringify(rosterData)
-})
-.then(response => response.json())
-.then(data => {
-    if (data.status === 'success') {
-        alert('Roster saved successfully!');
-        closePopup()
-        // Convert the current row to view mode (non-editable)
-        // row.cells[1].innerText = row.cells[1].querySelector('select')?.selectedOptions[0].text || rosterData.vehicleRegos;
-
-        // Update Trailer Rego cells to display the rego number, not the id
-        // if (trailer1Rego) row.cells[2].innerText = row.cells[2].querySelector('input.dropdown-toggle')?.value;
-        // if (trailer2Rego) row.cells[3].innerText = row.cells[3].querySelector('input.dropdown-toggle')?.value;
-        // if (trailer3Rego) row.cells[4].innerText = row.cells[4].querySelector('input.dropdown-toggle')?.value;
-        row.cells[1].innerText = vehicleRegos ? row.cells[1].querySelector('input.dropdown-toggle')?.value : "";
-        row.cells[2].innerText = trailer1Rego ? row.cells[2].querySelector('input.dropdown-toggle')?.value : "";
-        row.cells[3].innerText = trailer2Rego ? row.cells[3].querySelector('input.dropdown-toggle')?.value : "";
-        row.cells[4].innerText = trailer3Rego ? row.cells[4].querySelector('input.dropdown-toggle')?.value : "";
-        row.cells[11].innerText = driverName ? row.cells[11].querySelector('input.dropdown-toggle')?.value : "";
-
-
-        // Update other fields
-        row.cells[6].innerText = rosterData.startTime;
-        row.cells[7].innerText = rosterData.finishTime;
-        row.cells[9].innerText = rosterData.wharfStatus;
-        row.cells[10].innerText = rosterData.constructionSite;
-        // row.cells[11].innerText = row.cells[11].querySelector('select').selectedOptions[0].text;
-        row.cells[12].innerText = rosterData.notes;
-
-        // Disable the Done button as this row is now in view mode
-        button.disabled = true;
-    } else {
-        alert(data.message);
+    const row = button.closest('tr');
+    if (!row) {
+        console.error("Row not found");
+        return;
     }
-})
-.catch(error => {
-    console.error('Error saving roster data:', error);
-});
+
+    // Toggle between "Done" and "Save" states
+    if (button.innerText === "Done") {
+        // Allow trailer rego fields to remain editable
+        const trailer1Dropdown = row.cells[2].querySelector('select');
+        const trailer2Dropdown = row.cells[3].querySelector('select');
+        const trailer3Dropdown = row.cells[4].querySelector('select');
+
+        // Enable dropdowns for editing
+        trailer1Dropdown.disabled = false;
+        trailer2Dropdown.disabled = false;
+        trailer3Dropdown.disabled = false;
+
+        // Update button text to "Save"
+        button.innerText = "Save";
+    } else if (button.innerText === "Save") {
+        // Save updated data
+        const vehicleRegos = row.cells[1].querySelector('select')?.value || "";
+        const trailer1Rego = row.cells[2].querySelector('select')?.value || "";
+        const trailer2Rego = row.cells[3].querySelector('select')?.value || "";
+        const trailer3Rego = row.cells[4].querySelector('select')?.value || "";
+        const driverName = row.cells[11].querySelector('select')?.value || "";
+
+        const rosterData = {
+            date: row.cells[0].innerText,
+            vehicleRegos: vehicleRegos,
+            trailerRegos: [trailer1Rego, trailer2Rego, trailer3Rego],
+            trailerType: row.cells[5].innerText,
+            startTime: row.cells[6].querySelector('input')?.value || "",
+            finishTime: row.cells[7].querySelector('input')?.value || "",
+            clientName: row.cells[8].innerText,
+            wharfStatus: row.cells[9].querySelector('select')?.value || "",
+            constructionSite: row.cells[10].querySelector('select')?.value || "",
+            driverName: driverName,
+            notes: row.cells[12].querySelector('input')?.value || ""
+        };
+
+        console.log('Saving roster data:', rosterData);
+
+        // Send the data to the server
+        fetch('/roster/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // CSRF token
+            },
+            body: JSON.stringify(rosterData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Roster saved successfully!');
+
+                // Keep dropdowns editable
+                const trailer1Dropdown = row.cells[2].querySelector('select');
+                const trailer2Dropdown = row.cells[3].querySelector('select');
+                const trailer3Dropdown = row.cells[4].querySelector('select');
+
+                trailer1Dropdown.disabled = false;
+                trailer2Dropdown.disabled = false;
+                trailer3Dropdown.disabled = false;
+
+                // Change button back to "Done" for toggling
+                button.innerText = "Done";
+            } else {
+                alert(data.message || 'Failed to save roster data.');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving roster data:', error);
+            alert('An error occurred while saving. Please try again.');
+        });
+    }
 }
 
 
