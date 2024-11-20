@@ -18,7 +18,7 @@ class Driver(models.Model):
 
 class Trailer(models.Model):
     rego_number = models.CharField(max_length=10, unique=True, null=True, blank=True, default='default_value')
-
+    in_service = models.BooleanField(default=False)
     def __str__(self):
         return self.rego_number
 

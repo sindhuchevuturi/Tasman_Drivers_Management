@@ -42,6 +42,7 @@
             <thead class="thead-light">
                 <tr>
                     <th class="text-center">Trailer Rego</th>
+                    <th class="text-center">In Service</th>
                 </tr>
             </thead>
         </table>
@@ -51,6 +52,9 @@
                     {% for trailer in trailers %}
                     <tr>
                         <td class="text-center">{{ trailer.rego_number }}</td>
+                        <td class="text-center">
+                            <input type="checkbox" class="in-service-checkbox" data-trailer-id="{{ trailer.id }}" {% if trailer.in_service %}checked{% endif %}>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -100,10 +104,14 @@
             }
             if (newRego) {
                 $.post('/add_trailer/', { rego_number: newRego }, function(response) {
-                    location.reload();
                     if (response.status === 'success') {
-                        const newRow = `<tr><td class="text-center">${response.rego_number}</td></tr>`;
-                        $('#trailersTable tbody').append(newRow);
+                        const newRow = `<tr>
+                            <td class="text-center">${response.rego_number}</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="in-service-checkbox" data-trailer-id="${response.trailer_id}">
+                            </td>
+                        </tr>`;
+                        $('.scrollable-table tbody').append(newRow);
                         $('#newTrailerRego').val('');
                     } else if (response.status === 'exists') {
                         alert(response.message);
@@ -117,7 +125,26 @@
                 alert('Please enter a trailer registration number.');
             }
         }
-
+        $(document).ready(function() {
+            $('.in-service-checkbox').change(function() {
+                const trailerId = $(this).data('trailer-id');
+                const inService = $(this).is(':checked');
+                $.ajax({
+                    url: '/update_trailer_in_service/',
+                    method: 'POST',
+                    data: {
+                        'trailer_id': trailerId,
+                        'in_service': inService,
+                    },
+                    success: function(response) {
+                        // Optionally handle success response
+                    },
+                    error: function(xhr) {
+                        alert('Error updating trailer: ' + xhr.responseText);
+                    }
+                });
+            });
+        });
     </script>
 
 </body>

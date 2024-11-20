@@ -752,18 +752,20 @@ function getVehicleDropdown(id) {
     }
 // Helper function for trailer dropdown with search functionality
 function getTrailerDropdown(id) {
-    return `
-        <input type="text" class="form-control dropdown-toggle" placeholder="Select Trailer Rego" onclick="toggleDropdown(this)" autocomplete="off" id="${id}" data-trailer-id="">
-        <div class="dropdown-menu">
-            <input type="text" class="form-control" placeholder="Search Trailer..." oninput="filterDropdown(this)">
-            <ul class="list-unstyled">
-                {% for trailer in trailers %}
-                    <li onclick="selectOption(this, '{{ trailer.rego_number }}', '{{ trailer.id }}')">{{ trailer.rego_number }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    `;
-}
+        return `
+            <input type="text" class="form-control dropdown-toggle" placeholder="Select Trailer Rego" onclick="toggleDropdown(this)" autocomplete="off" id="${id}" data-trailer-id="">
+            <div class="dropdown-menu">
+                <input type="text" class="form-control" placeholder="Search Trailer..." oninput="filterDropdown(this)">
+                <ul class="list-unstyled">
+                    {% for trailer in trailers %}
+                        {% if not trailer.in_service %}
+                            <li onclick="selectOption(this, '{{ trailer.rego_number|escapejs }}', '{{ trailer.id }}')">{{ trailer.rego_number|escapejs }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        `;
+    }
 
 
 function selectVehicleOption(element, rego_number, vehicle_id) {

@@ -23,20 +23,24 @@ def trailers_list(request):
     """Render the trailers list view"""
     trailers = Trailer.objects.all()
     return render(request, 'trailers.html', {'trailers': trailers})
-
 def add_trailer(request):
     """Handle AJAX requests to add a new trailer"""
     if request.method == 'POST':
         rego_number = request.POST.get('rego_number', '').strip()
         if rego_number:
-            trailer, created = Trailer.objects.get_or_create(rego_number=rego_number)
-            print("already exit",trailer,created)
-            if created:
-                return JsonResponse({'status': 'success', 'rego_number': trailer.rego_number})
-            else:
+            # Check if the trailer already exists
+            if Trailer.objects.filter(rego_number=rego_number).exists():
                 return JsonResponse({'status': 'exists', 'message': 'Trailer already exists.'})
+            else:
+                trailer = Trailer.objects.create(rego_number=rego_number)
+                return JsonResponse({
+                    'status': 'success',
+                    'rego_number': trailer.rego_number,
+                    'trailer_id': trailer.id
+                })
         return JsonResponse({'status': 'error', 'message': 'Invalid trailer registration number.'})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
 # views.py
 
 def vehicle_list(request):
@@ -470,3 +474,16 @@ def export_roster_csv(request):
 
     return response
 
+def update_trailer_in_service(request):
+    if request.method == 'POST':
+        trailer_id = request.POST.get('trailer_id')
+        in_service = request.POST.get('in_service') == 'true'
+        try:
+            trailer = Trailer.objects.get(id=trailer_id)
+            trailer.in_service = in_service
+            trailer.save()
+            return JsonResponse({'status': 'success'})
+        except Trailer.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Trailer not found'}, status=404)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
