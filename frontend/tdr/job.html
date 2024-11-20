@@ -647,99 +647,67 @@ function confirmJob(button) {
 
     for (let i = 0; i < jobCount; i++) {
         const newRosterRow = rosterTable.insertRow(0);
-
-        // Generate a unique ID for the row (for server-side identification)
-        const uniqueRowId = generateUniqueId();
-        newRosterRow.setAttribute('data-row-id', uniqueRowId);
-
         newRosterRow.innerHTML = `
             <td>${jobDate}</td>
 
-            <td>
-                <div class="dropdown">
-                    ${getVehicleDropdown('vehicleRego1')}
-                </div>
-            </td>
+            <td><div class="dropdown">${getVehicleDropdown('vehicleRego1')}</div></td>
 
-            <!-- Trailer Registration Fields with onchange handlers -->
-            <td>
-                <div class="dropdown">
-                    ${getTrailerDropdown('trailerRego1', 'updateTrailerRego(this, 1)')}
-                </div>
-            </td>
-            <td>
-                <div class="dropdown">
-                    ${getTrailerDropdown('trailerRego2', 'updateTrailerRego(this, 2)')}
-                </div>
-            </td>
-            <td>
-                <div class="dropdown">
-                    ${getTrailerDropdown('trailerRego3', 'updateTrailerRego(this, 3)')}
-                </div>
-            </td>
+            <!-- Trailer Type Dropdown -->
+            <td><div class="dropdown">${getTrailerDropdown('trailerRego1')}</div></td>
+            <td><div class="dropdown">${getTrailerDropdown('trailerRego2')}</div></td>
+            <td><div class="dropdown">${getTrailerDropdown('trailerRego3')}</div></td>
             <td>${trailerType}</td>
 
             <td><input type="time" class="form-control"></td>
             <td><input type="time" class="form-control"></td>
             <td>${clientName}</td>
-            <td>
-                <select id="wharfStatus" class="form-control" onchange="checkDropdowns()">
-                    <option value="">Select Wharf Status</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                </select>
-            </td>
-            <td>
-                <select id="constructionSite" class="form-control" onchange="checkDropdowns()">
-                    <option value="">Select Construction Site</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                </select>
-            </td>
+<td>
+    <select id="wharfStatus" class="form-control" onchange="checkDropdowns()">
+        <option value="">Select Wharf Status</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+    </select>
+</td>
+<td>
+    <select id="constructionSite" class="form-control" onchange="checkDropdowns()">
+        <option value="">Select Construction Site</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+    </select>
+</td>
 
-            <td>
-                <div class="dropdown">
-                    ${getDriverDropdown('driverDropdown')}
-                </div>
-            </td>
+<td>
+    <div class="dropdown">${getDriverDropdown('driverDropdown')}</div>
+</td>
 
             <td><input type="text" class="form-control" placeholder="Notes"></td>
-            <td>
-                <button class="btn btn-primary" type="button" onclick="saveindatabase(this)">Done</button>
-            </td>
+            <td><button class="btn btn-primary" type="button" onclick="saveindatabase(this)">Done</button></td>
         `;
 
-        // Condition-based enabling/disabling of trailer rego fields
-        const trailerRego1Input = newRosterRow.querySelector('#trailerRego1');
-        const trailerRego2Input = newRosterRow.querySelector('#trailerRego2');
-        const trailerRego3Input = newRosterRow.querySelector('#trailerRego3');
+        // Condition-based enabling/disabling of trailer rego selects
+        const trailerRegoSelect = newRosterRow.querySelector('#trailerRego1');
+        const trailerRego2Select = newRosterRow.querySelector('#trailerRego2');
+        const trailerRego3Select = newRosterRow.querySelector('#trailerRego3');
 
-        // Adjust trailer rego field availability based on trailer type
         if (trailerType === 'BDBL') {
-            trailerRego1Input.disabled = false;
-            trailerRego2Input.disabled = false;
-            trailerRego3Input.disabled = true;
+            trailerRegoSelect.disabled = false;
+            trailerRego2Select.disabled = false;
+            trailerRego3Select.disabled = true;
         } else if (trailerType === 'RT') {
-            trailerRego1Input.disabled = false;
-            trailerRego2Input.disabled = false;
-            trailerRego3Input.disabled = false;
+            trailerRegoSelect.disabled = false;
+            trailerRego2Select.disabled = false;
+            trailerRego3Select.disabled = false;
         } else if (trailerType === 'S' || trailerType === 'SDL') {
-            trailerRego1Input.disabled = false;
-            trailerRego2Input.disabled = true;
-            trailerRego3Input.disabled = true;
+            trailerRegoSelect.disabled = false;
+            trailerRego2Select.disabled = true;
+            trailerRego3Select.disabled = true;
         } else {
-            trailerRego1Input.disabled = true;
-            trailerRego2Input.disabled = true;
-            trailerRego3Input.disabled = true;
+            trailerRegoSelect.disabled = true;
+            trailerRego2Select.disabled = true;
+            trailerRego3Select.disabled = true;
         }
     }
 }
-
-// Utility function to generate a unique ID
-function generateUniqueId() {
-    return 'row-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-}
-
 function getDriverDropdown(id) {
     return `
         <input type="text" class="form-control dropdown-toggle" placeholder="Select Driver" onclick="toggleDriverDropdown(this)" autocomplete="off" id="${id}" data-driver-id="">
@@ -783,23 +751,19 @@ function getVehicleDropdown(id) {
         `;
     }
 // Helper function for trailer dropdown with search functionality
-function getTrailerDropdown(id, onchangeHandler = '') {
+function getTrailerDropdown(id) {
     return `
-        <div class="dropdown">
-            <input type="text" class="form-control dropdown-toggle" placeholder="Select Trailer Rego" onclick="toggleDropdown(this)" autocomplete="off" id="${id}" data-trailer-id="" onchange="${onchangeHandler}">
-            <div class="dropdown-menu">
-                <input type="text" class="form-control" placeholder="Search Trailer..." oninput="filterDropdown(this)">
-                <ul class="list-unstyled">
-                    <!-- Assuming you're using server-side templating to insert trailers -->
-                    ${trailers.map(trailer => `
-                        <li onclick="selectOption(this, '${trailer.rego_number}', '${trailer.id}')">${trailer.rego_number}</li>
-                    `).join('')}
-                </ul>
-            </div>
+        <input type="text" class="form-control dropdown-toggle" placeholder="Select Trailer Rego" onclick="toggleDropdown(this)" autocomplete="off" id="${id}" data-trailer-id="">
+        <div class="dropdown-menu">
+            <input type="text" class="form-control" placeholder="Search Trailer..." oninput="filterDropdown(this)">
+            <ul class="list-unstyled">
+                {% for trailer in trailers %}
+                    <li onclick="selectOption(this, '{{ trailer.rego_number }}', '{{ trailer.id }}')">{{ trailer.rego_number }}</li>
+                {% endfor %}
+            </ul>
         </div>
     `;
 }
-
 
 
 function selectVehicleOption(element, rego_number, vehicle_id) {
@@ -834,32 +798,18 @@ function filterDropdown(searchInput) {
     }
 }
 
-function selectOption(listItem, regoNumber, trailerId) {
-    const inputField = listItem.closest('.dropdown').querySelector('input.dropdown-toggle');
-    if (inputField) {
-        inputField.value = regoNumber;
-        inputField.setAttribute('data-trailer-id', trailerId);
+// Function to select an option from the dropdown
+function selectOption(element, rego_number, trailer_id) {
+    const inputField = element.closest('.dropdown-menu').previousElementSibling;
+    
+    // Display the rego_number as the visible text in the input field
+    inputField.value = rego_number; 
 
-        // Close the dropdown menu
-        const dropdownMenu = listItem.closest('.dropdown-menu');
-        dropdownMenu.style.display = 'none';
+    // Store the trailer ID in a data attribute
+    inputField.setAttribute('data-trailer-id', trailer_id);
 
-        // Trigger the onchange event
-        inputField.dispatchEvent(new Event('change'));
-    }
-}
-function toggleDropdown(inputElement) {
-    const dropdownMenu = inputElement.nextElementSibling;
-    dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
-}
-
-function filterDropdown(inputElement) {
-    const filterValue = inputElement.value.toLowerCase();
-    const listItems = inputElement.nextElementSibling.querySelectorAll('li');
-    listItems.forEach(item => {
-        const text = item.innerText.toLowerCase();
-        item.style.display = text.includes(filterValue) ? 'block' : 'none';
-    });
+    // Close the dropdown
+    toggleDropdown(inputField);
 }
 
 
@@ -876,53 +826,10 @@ document.addEventListener('click', function(event) {
         closeAllDropdowns(); // Close dropdowns if clicking outside
     }
 });
-function updateTrailerRego(inputElement, trailerNumber) {
-    const row = inputElement.closest('tr');
-    if (!row) {
-        console.error("Row not found");
-        return;
-    }
 
-    const trailerRego = inputElement.value;
-    const trailerId = inputElement.getAttribute('data-trailer-id');
-    const rosterId = row.getAttribute('data-roster-id');
 
-    if (!rosterId) {
-        console.error("Roster ID not found. Save the roster first.");
-        return;
-    }
 
-    const updateData = {
-        rosterId: rosterId,
-        trailerNumber: trailerNumber,
-        trailerRego: trailerRego,
-        trailerId: trailerId
-    };
 
-    console.log('Updating trailer rego:', updateData);
-
-    // Send the updated trailer rego to the server
-    fetch('/roster/update_trailer_rego/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify(updateData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            console.log('Trailer rego updated successfully!');
-        } else {
-            alert(data.message || 'Failed to update trailer rego.');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating trailer rego:', error);
-        alert('An error occurred while updating. Please try again.');
-    });
-}
 
 
 
@@ -931,18 +838,30 @@ function updateTrailerRego(inputElement, trailerNumber) {
 
 
 function saveindatabase(button) {
-    const row = button.closest('tr');
-    if (!row) {
-        console.error("Row not found");
-        return;
-    }
+        // Replace static text with inputs or selects for editing
+        const row = button.closest('tr');
 
-    // Extract values from the row
-    const vehicleRego = row.cells[1].querySelector('input.dropdown-toggle')?.value || "";
-    const driverName = row.cells[11].querySelector('input.dropdown-toggle')?.value || "";
+// Check if the row exists
+if (!row) {
+    console.error("Row not found");
+    return;
+}
+console.log([row.cells[2].querySelector('select')?.value || ""])
+// Extract data from the row for saving
+// const trailerId = row.cells[2].querySelector('input.dropdown-toggle').value || "";
+// const trailerId = row.cells[2].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
+    const vehicleRegos = row.cells[1].querySelector('input.dropdown-toggle').getAttribute('data-vehicle-id') || "";
+    const trailer1Rego = row.cells[2].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
+    const trailer2Rego = row.cells[3].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
+    const trailer3Rego = row.cells[4].querySelector('input.dropdown-toggle').getAttribute('data-trailer-id') || "";
+    const driverName = row.cells[11].querySelector('input.dropdown-toggle').getAttribute('data-driver-id') || "";
+
+    console.log(trailer1Rego,trailer2Rego)
+
     const rosterData = {
         date: row.cells[0].innerText,
-        vehicleRego: vehicleRego,
+        vehicleRegos:vehicleRegos,
+        trailerRegos: [trailer1Rego, trailer2Rego, trailer3Rego],
         trailerType: row.cells[5].innerText,
         startTime: row.cells[6].querySelector('input')?.value || "",
         finishTime: row.cells[7].querySelector('input')?.value || "",
@@ -953,53 +872,54 @@ function saveindatabase(button) {
         notes: row.cells[12].querySelector('input')?.value || ""
     };
 
-    // Include trailer regos
-    rosterData.trailerRegos = [
-        row.cells[2].querySelector('input.dropdown-toggle')?.value || "",
-        row.cells[3].querySelector('input.dropdown-toggle')?.value || "",
-        row.cells[4].querySelector('input.dropdown-toggle')?.value || ""
-    ];
 
-    console.log('Saving roster data:', rosterData);
+console.log(rosterData);
 
-    // Send the data to the server
-    fetch('/roster/add/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify(rosterData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            alert('Roster saved successfully!');
+// Send the data to the server
+fetch('/roster/add/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken') // CSRF token
+    },
+    body: JSON.stringify(rosterData)
+})
+.then(response => response.json())
+.then(data => {
+    if (data.status === 'success') {
+        alert('Roster saved successfully!');
+        closePopup()
+        // Convert the current row to view mode (non-editable)
+        // row.cells[1].innerText = row.cells[1].querySelector('select')?.selectedOptions[0].text || rosterData.vehicleRegos;
 
-            // Disable other inputs
-            row.cells[1].querySelector('input.dropdown-toggle')?.setAttribute('disabled', true);
-            row.cells[6].querySelector('input')?.setAttribute('disabled', true);
-            row.cells[7].querySelector('input')?.setAttribute('disabled', true);
-            row.cells[9].querySelector('select')?.setAttribute('disabled', true);
-            row.cells[10].querySelector('select')?.setAttribute('disabled', true);
-            row.cells[11].querySelector('input.dropdown-toggle')?.setAttribute('disabled', true);
-            row.cells[12].querySelector('input')?.setAttribute('disabled', true);
+        // Update Trailer Rego cells to display the rego number, not the id
+        // if (trailer1Rego) row.cells[2].innerText = row.cells[2].querySelector('input.dropdown-toggle')?.value;
+        // if (trailer2Rego) row.cells[3].innerText = row.cells[3].querySelector('input.dropdown-toggle')?.value;
+        // if (trailer3Rego) row.cells[4].innerText = row.cells[4].querySelector('input.dropdown-toggle')?.value;
+        row.cells[1].innerText = vehicleRegos ? row.cells[1].querySelector('input.dropdown-toggle')?.value : "";
+        row.cells[2].innerText = trailer1Rego ? row.cells[2].querySelector('input.dropdown-toggle')?.value : "";
+        row.cells[3].innerText = trailer2Rego ? row.cells[3].querySelector('input.dropdown-toggle')?.value : "";
+        row.cells[4].innerText = trailer3Rego ? row.cells[4].querySelector('input.dropdown-toggle')?.value : "";
+        row.cells[11].innerText = driverName ? row.cells[11].querySelector('input.dropdown-toggle')?.value : "";
 
-            // Leave trailer rego inputs (cells 2-4) enabled
 
-            // Disable the Done button
-            button.disabled = true;
+        // Update other fields
+        row.cells[6].innerText = rosterData.startTime;
+        row.cells[7].innerText = rosterData.finishTime;
+        row.cells[9].innerText = rosterData.wharfStatus;
+        row.cells[10].innerText = rosterData.constructionSite;
+        // row.cells[11].innerText = row.cells[11].querySelector('select').selectedOptions[0].text;
+        row.cells[12].innerText = rosterData.notes;
 
-            // Store the roster ID in the row for future updates
-            row.setAttribute('data-roster-id', data.roster_id);
-        } else {
-            alert(data.message || 'Failed to save roster data.');
-        }
-    })
-    .catch(error => {
-        console.error('Error saving roster data:', error);
-        alert('An error occurred while saving. Please try again.');
-    });
+        // Disable the Done button as this row is now in view mode
+        button.disabled = true;
+    } else {
+        alert(data.message);
+    }
+})
+.catch(error => {
+    console.error('Error saving roster data:', error);
+});
 }
 
 
