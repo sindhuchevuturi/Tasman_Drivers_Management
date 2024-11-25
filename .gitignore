@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+staticfiles/
 
 # Virtual environment folders
 venv/
@@ -38,3 +39,5 @@ coverage.xml
 # SQLite database file
 *.db
 *.sqlite3
+__azurite_db_queue__.json
+__azurite_db_queue_extent__.json
