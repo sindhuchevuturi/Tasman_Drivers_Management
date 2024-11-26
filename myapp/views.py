@@ -275,6 +275,7 @@ def add_roster(request):
 
                 # Create a new Roster instance
                 roster = Roster.objects.create(
+                    in_service=data['in_service'],
                     job_date=job_date,
                     vehicle=vehicles,
                     trailer1=trailer1,
@@ -319,10 +320,16 @@ def add_roster(request):
                     from_=twilio_phone_number,
                     to=driver.phone_number
                 )
-                print("Message Sent:", message.sid)
+                # print("Message Sent:", message.sid)
+                print("Message Sent")
 
-                return JsonResponse({'status': 'success', 'message': 'You received an SMS on your phone.'})
-
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f"Roster created successfully. ID: {roster.id}",
+                    'data': {
+                        'id': roster.id,
+                    }
+                })
             except Vehicle.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': 'Vehicle not found.'})
             except Trailer.DoesNotExist:
@@ -449,7 +456,7 @@ def export_roster_csv(request):
 
     # Write the header row
     writer.writerow([
-        'Job Date', 'Vehicle Rego Number', 'Driver Name', 
+       'Runsheet Received', 'Job Date', 'Vehicle Rego Number', 'Driver Name', 
         'Trailer1 Rego Number', 'Trailer2 Rego Number', 'Trailer3 Rego Number', 
         'Trailer Type', 'Start Time', 'End Time', 
         'Client Name', 'Wharf Status', 'Construction Site', 'Notes'
@@ -459,6 +466,7 @@ def export_roster_csv(request):
     rosters = Roster.objects.all()
     for roster in rosters:
         writer.writerow([
+            "Received" if roster.in_service else "Not Received",  
             roster.job_date.strftime('%Y-%m-%d') if roster.job_date else '',
             roster.vehicle.rego_number if roster.vehicle else '',
             roster.driver.name if roster.driver else '',
@@ -501,3 +509,30 @@ def update_vehicle_in_service(request):
         return JsonResponse({'status': 'success'})
     except Vehicle.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Vehicle not found'}, status=404)
+    
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def update_roster_service(request):
+    if request.method == 'POST':
+        # data = json.loads(request.body)
+        roster_id = request.POST.get('roster_id')
+        is_service =request.POST.get('is_service')== 'true'
+        print("roster_id",roster_id,"is_service",is_service)
+        # Fetch and update the roster record
+        try:
+            # print()
+            roster = Roster.objects.get(id=roster_id)
+            roster.in_service = is_service
+
+            print("roster",roster)
+
+            roster.save()
+            print("roster after save ",roster)
+            print("roster after save ",roster.in_service)
+
+            return JsonResponse({'status': 'success'})
+        except Roster.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Roster not found'}, status=404)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)

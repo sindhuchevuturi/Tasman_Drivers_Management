@@ -18,7 +18,8 @@ urlpatterns = [
     path('api/get_filtered_drivers', get_filtered_drivers, name='get_filtered_drivers'),
     path('export/roster/', export_roster_csv, name='export_roster_csv'),
     path('update_trailer_in_service/', update_trailer_in_service, name='update_trailer_in_service'),
-     path('update_vehicle_in_service/', update_vehicle_in_service, name='update_vehicle_in_service'),
+    path('update_vehicle_in_service/', update_vehicle_in_service, name='update_vehicle_in_service'),
+    path('update_roster_confirm/', update_roster_service, name='update_roster_confirm'),
 
 
 ]

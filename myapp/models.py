@@ -53,6 +53,7 @@ class Roster(models.Model):
     construction_site = models.CharField(max_length=100, default="")  # Use empty string as default
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True)  # Remove default
     notes = models.TextField(blank=True, null=True)
+    in_service = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.job_date} - {self.client_name} - {self.vehicle.rego_number}"
+        return f"{self.job_date} - {self.client_name} - {self.vehicle.rego_number}-{self.in_service}"
