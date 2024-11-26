@@ -526,83 +526,75 @@
             //     }
             // });
             $(document).ready(function () {
-                // DataTable initialization
+    // DataTable initialization
                 var table = $('#rosterTable').DataTable({
                     paging: false,
                     info: false,
                     initComplete: function () {
+                        // Custom filtering logic for date range
+                        $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                            var min = $('#startDate').val();
+                            var max = $('#endDate').val();
+                            var date = data[1]; // Adjust index for the "Date" column
+
+                            if (min) {
+                                min = new Date(min).getTime();
+                            }
+                            if (max) {
+                                max = new Date(max).getTime();
+                            }
+                            var rowDate = new Date(date).getTime();
+
+                            return (
+                                (isNaN(min) || rowDate >= min) &&
+                                (isNaN(max) || rowDate <= max)
+                            );
+                        });
+
                         // Iterate over each column
                         this.api().columns().every(function () {
                             var column = this;
                             var columnIndex = column.index();
 
-                            // Get the header cell
+                            // Skip the first column (index 0)
+                            if (columnIndex === 0) return;
+
+                            // Get header cell and set up the filter container
                             var header = $(column.header());
-
-                            // Store the header text
                             var headerText = header.text();
-
-                            // Clear the header and add a container for text and filter
                             header.empty();
-                            var container = $('<div class="header-container"></div>').appendTo(header);
 
-                            // Add header text
+                            var container = $('<div class="header-container"></div>').appendTo(header);
                             $('<span class="header-text">' + headerText + '</span>').appendTo(container);
 
-                            // Check if it's the Date column (first column, index 0)
+                            // Special handling for the "Date" column
                             if (columnIndex === 1) {
-                                // Create input elements for start and end dates
-                                var startDateInput = $('<input type="text" class="header-filter date-filter" placeholder="Start date" />')
+                                // Add date range inputs only
+                                $('<input id="startDate" type="text" class="header-filter date-filter" placeholder="Start date" />')
                                     .appendTo(container)
+                                    .datepicker({
+                                        dateFormat: 'yy-mm-dd',
+                                        changeMonth: true,
+                                        changeYear: true,
+                                        showButtonPanel: true
+                                    })
                                     .on('change', function () {
                                         table.draw();
                                     });
-                                var endDateInput = $('<input type="text" class="header-filter date-filter" placeholder="End date" />')
+
+                                $('<input id="endDate" type="text" class="header-filter date-filter" placeholder="End date" />')
                                     .appendTo(container)
+                                    .datepicker({
+                                        dateFormat: 'yy-mm-dd',
+                                        changeMonth: true,
+                                        changeYear: true,
+                                        showButtonPanel: true
+                                    })
                                     .on('change', function () {
                                         table.draw();
                                     });
-
-                                // Initialize date pickers
-                                startDateInput.datepicker({
-                                    dateFormat: 'yy-mm-dd',
-                                    changeMonth: true,
-                                    changeYear: true,
-                                    showButtonPanel: true
-                                });
-                                endDateInput.datepicker({
-                                    dateFormat: 'yy-mm-dd',
-                                    changeMonth: true,
-                                    changeYear: true,
-                                    showButtonPanel: true
-                                });
-
-                                // Custom filtering function for date range
-                                $.fn.dataTable.ext.search.push(
-                                    function (settings, data, dataIndex) {
-                                        var min = startDateInput.val();
-                                        var max = endDateInput.val();
-                                        var date = data[0]; // Use data for the date column
-
-                                        if (min) {
-                                            min = new Date(min).getTime();
-                                        }
-                                        if (max) {
-                                            max = new Date(max).getTime();
-                                        }
-                                        var rowDate = new Date(date).getTime();
-
-                                        if (
-                                            (isNaN(min) || rowDate >= min) &&
-                                            (isNaN(max) || rowDate <= max)
-                                        ) {
-                                            return true;
-                                        }
-                                        return false;
-                                    }
-                                );
                             } else {
-                                // For other columns, use select dropdown
+                                // For other columns, add only dropdown filters
                                 var select = $('<select class="header-filter"><option value="">All</option></select>')
                                     .appendTo(container)
                                     .on('change', function () {
@@ -614,8 +606,8 @@
 
                                 // Populate select options with unique sorted data
                                 column.data().unique().sort().each(function (d, j) {
-                                    d = $('<div>').html(d).text(); // Strip any HTML
-                                    if (d) { // Only add non-empty options
+                                    d = $('<div>').html(d).text(); // Strip HTML
+                                    if (d) {
                                         select.append('<option value="' + d + '">' + d + '</option>');
                                     }
                                 });
@@ -624,6 +616,9 @@
                     }
                 });
             });
+
+
+
             function validateJobCount(input) {
                 input.value = input.value.replace(/\D/g, ''); // Allow only digits
             }
