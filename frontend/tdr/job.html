@@ -438,6 +438,8 @@
         <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
         <!-- Flatpickr CSS -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
         <!-- Flatpickr JS -->
         <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -461,7 +463,7 @@
         <!-- Popper.js and Bootstrap JS (if needed) -->
         <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
+        
 
         <script>
 
@@ -556,20 +558,22 @@
                             var column = this;
                             var columnIndex = column.index();
 
-                            // Skip the first column (index 0)
+                            // Skip the first column (checkboxes)
                             if (columnIndex === 0) return;
 
-                            // Get header cell and set up the filter container
+                            // Get the original header and retain its content for sorting
                             var header = $(column.header());
-                            var headerText = header.text();
-                            header.empty();
+                            var originalContent = header.html();
 
-                            var container = $('<div class="header-container"></div>').appendTo(header);
-                            $('<span class="header-text">' + headerText + '</span>').appendTo(container);
+                            // Create a container for the filter and append it to the header
+                            var container = $('<div class="filter-container"></div>').appendTo(header);
+
+                            // Add sorting controls back (if removed accidentally)
+                            header.html(originalContent);
 
                             // Special handling for the "Date" column
                             if (columnIndex === 1) {
-                                // Add date range inputs only
+                                // Add date range inputs
                                 $('<input id="startDate" type="text" class="header-filter date-filter" placeholder="Start date" />')
                                     .appendTo(container)
                                     .datepicker({
@@ -594,7 +598,7 @@
                                         table.draw();
                                     });
                             } else {
-                                // For other columns, add only dropdown filters
+                                // For other columns, add dropdown filters
                                 var select = $('<select class="header-filter"><option value="">All</option></select>')
                                     .appendTo(container)
                                     .on('change', function () {
